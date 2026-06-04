@@ -1,0 +1,41 @@
+[
+  {
+    "name": "408-Main Door",
+    "short_name": "408-Main Door",
+    "serial": "JJA1251900136",
+    "ip": "10.1.10.189",
+    "port": 4370,
+    "location": "NSIC Park",
+    "direction_mode": "device",
+    "default_direction": "IN",
+    "password": 0,
+    "timeout_seconds": 30,
+    "enabled": true
+  },
+  {
+    "name": "209-Main Door",
+    "short_name": "209-Main Door",
+    "serial": "JJA1253800447",
+    "ip": "10.1.0.201",
+    "port": 4370,
+    "location": "NSIC Park",
+    "direction_mode": "device",
+    "default_direction": "OUT",
+    "password": 0,
+    "timeout_seconds": 30,
+    "enabled": true
+  },
+  {
+    "name": "209-Back Door",
+    "short_name": "209-Back Door",
+    "serial": "JJA1253800406",
+    "ip": "10.1.0.202",
+    "port": 4370,
+    "location": "NSIC Park",
+    "direction_mode": "device",
+    "default_direction": "IN",
+    "password": 0,
+    "timeout_seconds": 30,
+    "enabled": true
+  }
+]

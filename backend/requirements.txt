@@ -1,0 +1,6 @@
+fastapi>=0.115.6,<1.0
+uvicorn[standard]>=0.34.0,<1.0
+pydantic>=2.12.0,<3.0
+pyzk==0.9
+tzdata>=2025.2
+aiofiles>=24.1.0
