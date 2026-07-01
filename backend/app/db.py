@@ -93,9 +93,36 @@ def init_db() -> None:
                 punch_count INTEGER NOT NULL DEFAULT 0
             );
 
+            CREATE TABLE IF NOT EXISTS zoho_sync_runs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                started_at TEXT NOT NULL,
+                completed_at TEXT,
+                status TEXT NOT NULL,
+                message TEXT,
+                requested_count INTEGER NOT NULL DEFAULT 0,
+                sent_count INTEGER NOT NULL DEFAULT 0,
+                skipped_count INTEGER NOT NULL DEFAULT 0,
+                failed_count INTEGER NOT NULL DEFAULT 0,
+                dry_run INTEGER NOT NULL DEFAULT 0
+            );
+
+            CREATE TABLE IF NOT EXISTS zoho_punch_sync (
+                punch_id INTEGER PRIMARY KEY,
+                zoho_employee_id TEXT,
+                status TEXT NOT NULL,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                request_payload TEXT,
+                response_text TEXT,
+                error TEXT,
+                sent_at TEXT,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (punch_id) REFERENCES punches(id) ON DELETE CASCADE
+            );
+
             CREATE INDEX IF NOT EXISTS idx_punches_time ON punches (punch_time);
             CREATE INDEX IF NOT EXISTS idx_punches_device ON punches (device_id);
             CREATE INDEX IF NOT EXISTS idx_punches_user ON punches (user_id);
+            CREATE INDEX IF NOT EXISTS idx_zoho_punch_sync_status ON zoho_punch_sync (status);
             """
         )
 
@@ -268,6 +295,115 @@ def list_users(device_ip: str | None = None) -> list[dict[str, Any]]:
         return [row_to_dict(row) for row in rows]
 
 
+def get_detailed_report(
+    from_date: str | None = None,
+    to_date: str | None = None,
+    user_id: str | None = None,
+    user_ids: list[str] | None = None,
+    summary: bool = False,
+) -> list[dict[str, Any]]:
+    """Get detailed per-user, per-day attendance report with all IN/OUT punches.
+    
+    Returns list of dicts with: day, user_id, user_name, device_name, punches (list of timed entries),
+    first_in, last_out, work_hours, total_punches, in_count, out_count.
+    """
+    clauses: list[str] = []
+    params: list[Any] = []
+    if from_date:
+        clauses.append("date(p.punch_time) >= ?")
+        params.append(from_date)
+    if to_date:
+        clauses.append("date(p.punch_time) <= ?")
+        params.append(to_date)
+    if user_id:
+        clauses.append("p.user_id = ?")
+        params.append(user_id)
+    elif user_ids:
+        placeholders = ",".join("?" for _ in user_ids)
+        clauses.append(f"p.user_id IN ({placeholders})")
+        params.extend(user_ids)
+    
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    
+    with connect() as conn:
+        rows = conn.execute(
+            f"""
+            SELECT
+                date(p.punch_time) AS day,
+                p.user_id,
+                p.user_name,
+                p.punch_time,
+                p.direction,
+                p.punch_label,
+                p.punch_code,
+                p.verify_code,
+                p.device_name,
+                p.device_ip,
+                p.id
+            FROM punches p
+            {where}
+            ORDER BY date(p.punch_time) DESC, p.user_name COLLATE NOCASE, p.punch_time ASC
+            """,
+            params,
+        ).fetchall()
+        
+        # Group by day then user
+        from collections import OrderedDict
+        grouped = OrderedDict()
+        for row in rows:
+            d = row_to_dict(row)
+            day_key = d["day"]
+            user_key = f"{day_key}|{d['user_id']}"
+            if user_key not in grouped:
+                grouped[user_key] = {
+                    "day": day_key,
+                    "user_id": d["user_id"],
+                    "user_name": d["user_name"],
+                    "device_name": d["device_name"],
+                    "device_ip": d["device_ip"],
+                    "punches": [],
+                    "first_in": None,
+                    "last_out": None,
+                    "in_count": 0,
+                    "out_count": 0,
+                    "total_punches": 0,
+                }
+            entry = grouped[user_key]
+            entry["punches"].append({
+                "time": d["punch_time"],
+                "direction": d["direction"],
+                "label": d["punch_label"],
+                "code": d["punch_code"],
+                "verify_code": d["verify_code"],
+            })
+            if d["direction"] == "IN":
+                entry["in_count"] += 1
+                if entry["first_in"] is None or d["punch_time"] < entry["first_in"]:
+                    entry["first_in"] = d["punch_time"]
+            elif d["direction"] == "OUT":
+                entry["out_count"] += 1
+                if entry["last_out"] is None or d["punch_time"] > entry["last_out"]:
+                    entry["last_out"] = d["punch_time"]
+            entry["total_punches"] += 1
+        
+        results = list(grouped.values())
+        for entry in results:
+            if entry["first_in"] and entry["last_out"]:
+                try:
+                    first = datetime.fromisoformat(entry["first_in"])
+                    last = datetime.fromisoformat(entry["last_out"])
+                    diff = (last - first).total_seconds() / 3600
+                    entry["work_hours"] = round(diff, 2)
+                except (ValueError, TypeError):
+                    entry["work_hours"] = None
+            else:
+                entry["work_hours"] = None
+        
+        if summary:
+            return results
+        return results
+
+
 def list_punches(
     *,
     from_time: str | None = None,
@@ -275,6 +411,7 @@ def list_punches(
     device_ip: str | None = None,
     user_id: str | None = None,
     direction: str | None = None,
+    sort_order: str = "desc",
     limit: int = 500,
 ) -> list[dict[str, Any]]:
     clauses: list[str] = []
@@ -298,6 +435,7 @@ def list_punches(
 
     where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
     params.append(max(1, min(limit, 100000)))
+    order_direction = "ASC" if str(sort_order).lower() == "asc" else "DESC"
 
     with connect() as conn:
         rows = conn.execute(
@@ -305,7 +443,7 @@ def list_punches(
             SELECT *
             FROM punches
             {where}
-            ORDER BY punch_time DESC, id DESC
+            ORDER BY punch_time {order_direction}, id {order_direction}
             LIMIT ?
             """,
             params,
@@ -313,7 +451,13 @@ def list_punches(
         return [row_to_dict(row) for row in rows]
 
 
-def get_summary(from_time: str | None = None, to_time: str | None = None) -> dict[str, Any]:
+def get_summary(
+    from_time: str | None = None,
+    to_time: str | None = None,
+    device_ip: str | None = None,
+    user_id: str | None = None,
+    direction: str | None = None,
+) -> dict[str, Any]:
     clauses: list[str] = []
     params: list[Any] = []
 
@@ -323,6 +467,15 @@ def get_summary(from_time: str | None = None, to_time: str | None = None) -> dic
     if to_time:
         clauses.append("punch_time <= ?")
         params.append(to_time)
+    if device_ip:
+        clauses.append("device_ip = ?")
+        params.append(device_ip)
+    if user_id:
+        clauses.append("user_id = ?")
+        params.append(user_id)
+    if direction:
+        clauses.append("direction = ?")
+        params.append(direction.upper())
 
     where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
 
@@ -387,6 +540,193 @@ def finish_sync_run(
             """,
             (now_iso(), status, message, device_count, user_count, punch_count, run_id),
         )
+
+
+def start_zoho_sync_run(*, dry_run: bool = False) -> int:
+    with connect() as conn:
+        cursor = conn.execute(
+            "INSERT INTO zoho_sync_runs (started_at, status, dry_run) VALUES (?, 'running', ?)",
+            (now_iso(), int(dry_run)),
+        )
+        return int(cursor.lastrowid)
+
+
+def finish_zoho_sync_run(
+    run_id: int,
+    *,
+    status: str,
+    message: str,
+    requested_count: int,
+    sent_count: int,
+    skipped_count: int,
+    failed_count: int,
+) -> None:
+    with connect() as conn:
+        conn.execute(
+            """
+            UPDATE zoho_sync_runs
+            SET completed_at = ?, status = ?, message = ?, requested_count = ?,
+                sent_count = ?, skipped_count = ?, failed_count = ?
+            WHERE id = ?
+            """,
+            (now_iso(), status, message, requested_count, sent_count, skipped_count, failed_count, run_id),
+        )
+
+
+def list_zoho_sync_runs(limit: int = 10) -> list[dict[str, Any]]:
+    with connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM zoho_sync_runs
+            ORDER BY started_at DESC, id DESC
+            LIMIT ?
+            """,
+            (max(1, min(int(limit), 100)),),
+        ).fetchall()
+        return [row_to_dict(row) for row in rows]
+
+
+def get_zoho_sync_summary() -> dict[str, Any]:
+    with connect() as conn:
+        totals = conn.execute(
+            """
+            SELECT
+                COUNT(*) AS total_punches,
+                SUM(CASE WHEN z.status = 'sent' THEN 1 ELSE 0 END) AS sent_count,
+                SUM(CASE WHEN z.status = 'failed' THEN 1 ELSE 0 END) AS failed_count,
+                SUM(CASE WHEN z.status = 'skipped' THEN 1 ELSE 0 END) AS skipped_count
+            FROM punches p
+            LEFT JOIN zoho_punch_sync z ON z.punch_id = p.id
+            """
+        ).fetchone()
+        last_run = conn.execute(
+            "SELECT * FROM zoho_sync_runs ORDER BY started_at DESC, id DESC LIMIT 1"
+        ).fetchone()
+        last_error = conn.execute(
+            """
+            SELECT
+                z.status,
+                z.error,
+                z.response_text,
+                z.updated_at,
+                p.user_id,
+                p.user_name,
+                p.punch_time
+            FROM zoho_punch_sync z
+            LEFT JOIN punches p ON p.id = z.punch_id
+            WHERE z.status IN ('failed', 'skipped') AND (z.error IS NOT NULL OR z.response_text IS NOT NULL)
+            ORDER BY z.updated_at DESC
+            LIMIT 1
+            """
+        ).fetchone()
+
+    total = totals["total_punches"] or 0
+    sent = totals["sent_count"] or 0
+    failed = totals["failed_count"] or 0
+    skipped = totals["skipped_count"] or 0
+    return {
+        "total_punches": total,
+        "sent_count": sent,
+        "failed_count": failed,
+        "skipped_count": skipped,
+        "pending_count": max(0, total - sent),
+        "last_run": row_to_dict(last_run) if last_run else None,
+        "last_error": row_to_dict(last_error) if last_error else None,
+    }
+
+
+def list_zoho_candidate_punches(
+    *,
+    from_time: str | None = None,
+    to_time: str | None = None,
+    user_ids: list[str] | None = None,
+    limit: int = 200,
+    include_failed: bool = True,
+) -> list[dict[str, Any]]:
+    clauses = ["COALESCE(z.status, '') != 'sent'"]
+    params: list[Any] = []
+
+    if not include_failed:
+        clauses.append("COALESCE(z.status, '') != 'failed'")
+    if from_time:
+        clauses.append("p.punch_time >= ?")
+        params.append(from_time)
+    if to_time:
+        clauses.append("p.punch_time <= ?")
+        params.append(to_time)
+    if user_ids:
+        placeholders = ",".join("?" for _ in user_ids)
+        clauses.append(f"p.user_id IN ({placeholders})")
+        params.extend([str(user_id) for user_id in user_ids])
+
+    params.append(max(1, min(int(limit), 1000)))
+    with connect() as conn:
+        rows = conn.execute(
+            f"""
+            SELECT
+                p.*,
+                z.status AS zoho_status,
+                z.attempts AS zoho_attempts,
+                z.error AS zoho_error,
+                z.sent_at AS zoho_sent_at
+            FROM punches p
+            LEFT JOIN zoho_punch_sync z ON z.punch_id = p.id
+            WHERE {' AND '.join(clauses)}
+            ORDER BY p.punch_time ASC, p.id ASC
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
+        return [row_to_dict(row) for row in rows]
+
+
+def record_zoho_punch_status(
+    punch_id: int,
+    *,
+    status: str,
+    zoho_employee_id: str | None = None,
+    request_payload: str | None = None,
+    response_text: str | None = None,
+    error: str | None = None,
+) -> None:
+    timestamp = now_iso()
+    sent_at = timestamp if status == "sent" else None
+    with connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO zoho_punch_sync (
+                punch_id, zoho_employee_id, status, attempts, request_payload,
+                response_text, error, sent_at, updated_at
+            )
+            VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?)
+            ON CONFLICT(punch_id) DO UPDATE SET
+                zoho_employee_id = excluded.zoho_employee_id,
+                status = excluded.status,
+                attempts = zoho_punch_sync.attempts + 1,
+                request_payload = excluded.request_payload,
+                response_text = excluded.response_text,
+                error = excluded.error,
+                sent_at = COALESCE(excluded.sent_at, zoho_punch_sync.sent_at),
+                updated_at = excluded.updated_at
+            """,
+            (
+                punch_id,
+                zoho_employee_id,
+                status,
+                request_payload,
+                response_text,
+                error[:1000] if error else None,
+                sent_at,
+                timestamp,
+            ),
+        )
+
+
+def clear_zoho_punch_status(punch_id: int) -> bool:
+    with connect() as conn:
+        cursor = conn.execute("DELETE FROM zoho_punch_sync WHERE punch_id = ?", (punch_id,))
+        return cursor.rowcount > 0
 
 
 def record_device_success(device: DeviceConfig, actual_serial: str | None = None) -> None:

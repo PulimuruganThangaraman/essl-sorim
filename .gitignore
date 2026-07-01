@@ -27,6 +27,7 @@ Thumbs.db
 .env
 *.env.local
 backend/data/email_config.json
+backend/data/zoho_people_config.json
 
 # Logs
 *.log

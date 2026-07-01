@@ -15,6 +15,7 @@ import ssl
 from datetime import date, datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import getaddresses
 from pathlib import Path
 from typing import Any
 
@@ -59,6 +60,40 @@ def _explicit_env(*names: str) -> str | None:
 def _clean_password(value: str) -> str:
     # Gmail app passwords are often copied with spaces; SMTP login wants the raw token.
     return value.replace(" ", "")
+
+
+def _parse_recipients(value: Any) -> list[str]:
+    """Parse comma/semicolon/newline separated recipient addresses for SMTP."""
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple, set)):
+        raw_values = [str(item) for item in value]
+    else:
+        raw_values = [str(value)]
+
+    normalized = [item.replace(";", ",").replace("\n", ",") for item in raw_values]
+    recipients: list[str] = []
+    seen: set[str] = set()
+    for _name, address in getaddresses(normalized):
+        address = address.strip()
+        key = address.lower()
+        if address and "@" in address and key not in seen:
+            recipients.append(address)
+            seen.add(key)
+    return recipients
+
+
+def _parse_cc_bcc(value: Any) -> tuple[list[str], list[str]]:
+    """Parse CC and BCC from a string or list. Format: 'to1@ex.com,cc1@ex.com;bcc1@ex.com' or separate fields."""
+    if value is None:
+        return [], []
+    if isinstance(value, dict):
+        cc = _parse_recipients(value.get("cc"))
+        bcc = _parse_recipients(value.get("bcc"))
+        return cc, bcc
+    # Fallback: treat all as regular recipients
+    recipients = _parse_recipients(value)
+    return [], []
 
 
 def _env_config_overrides() -> dict[str, Any]:
@@ -140,8 +175,15 @@ def update_config(**kwargs) -> dict:
     """Update email configuration with the given key-value pairs."""
     config = _load_config()
     for key, value in kwargs.items():
-        if value is not None and key in config:
-            config[key] = _clean_password(value) if key == "password" else value
+        if value is not None:
+            if key == "cc_email":
+                config["cc_email"] = ", ".join(_parse_recipients(value)) if isinstance(value, str) else value
+            elif key == "bcc_email":
+                config["bcc_email"] = ", ".join(_parse_recipients(value)) if isinstance(value, str) else value
+            elif key == "password":
+                config[key] = _clean_password(value)
+            elif key in config:
+                config[key] = value
     _save_config(config)
     return config
 
@@ -256,10 +298,9 @@ def _build_employee_attendance_rows(punches: list[dict[str, Any]]) -> tuple[list
                 break
 
         last_out = None
-        if first_in:
-            for punch_time, direction in punch_events:
-                if direction == "OUT" and punch_time >= first_in:
-                    last_out = punch_time
+        for punch_time, direction in punch_events:
+            if direction == "OUT":
+                last_out = punch_time
 
         duration_seconds = None
         if first_in and last_out and last_out >= first_in:
@@ -364,11 +405,15 @@ def generate_email_subject(target_date: date | None = None) -> str:
 def send_report(target_date: date | None = None, config_override: dict | None = None, require_enabled: bool = True) -> dict[str, Any]:
     """Generate and send the daily attendance report via email."""
     config = config_override or _load_config()
+    recipients = _parse_recipients(config.get("to_email"))
+    cc_recipients = _parse_recipients(config.get("cc_email"))
+    bcc_recipients = _parse_recipients(config.get("bcc_email"))
+    all_recipients = list(recipients) + list(cc_recipients) + list(bcc_recipients)
 
     if require_enabled and not config.get("enabled"):
         return {"status": "skipped", "message": "Email report is disabled."}
 
-    if not config.get("to_email") or not config.get("from_email"):
+    if not recipients or not config.get("from_email"):
         return {"status": "error", "message": "SMTP to/from email not configured."}
 
     if "gmail.com" in str(config.get("host", "")).lower() and (not config.get("user") or not config.get("password")):
@@ -383,7 +428,11 @@ def send_report(target_date: date | None = None, config_override: dict | None = 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = generate_email_subject(target_date)
     msg["From"] = config["from_email"]
-    msg["To"] = config["to_email"]
+    msg["To"] = ", ".join(recipients)
+    if cc_recipients:
+        msg["Cc"] = ", ".join(cc_recipients)
+    if bcc_recipients:
+        msg["Bcc"] = ", ".join(bcc_recipients)
     msg.attach(MIMEText(html_content, "html"))
 
     try:
@@ -398,11 +447,19 @@ def send_report(target_date: date | None = None, config_override: dict | None = 
         if config.get("user") and config.get("password"):
             server.login(config["user"], config["password"])
 
-        server.sendmail(config["from_email"], config["to_email"], msg.as_string())
+        server.sendmail(config["from_email"], all_recipients, msg.as_string())
         server.quit()
 
-        logger.info("Daily report sent to %s for %s", config["to_email"], formatted_date)
-        return {"status": "ok", "message": f"Report sent to {config['to_email']} for {formatted_date}."}
+        recipient_parts = []
+        if recipients:
+            recipient_parts.append(f"To: {', '.join(recipients)}")
+        if cc_recipients:
+            recipient_parts.append(f"CC: {', '.join(cc_recipients)}")
+        if bcc_recipients:
+            recipient_parts.append(f"BCC: {', '.join(bcc_recipients)}")
+        recipient_text = " | ".join(recipient_parts)
+        logger.info("Daily report sent for %s — %s", formatted_date, recipient_text)
+        return {"status": "ok", "message": f"Report sent for {formatted_date}. {recipient_text}"}
 
     except smtplib.SMTPAuthenticationError:
         logger.error("Failed to send email report: Gmail SMTP authentication rejected for %s", config.get("user"))
@@ -413,6 +470,9 @@ def send_report(target_date: date | None = None, config_override: dict | None = 
                 "for this Gmail account, update Settings > Email, then try Send Test again."
             ),
         }
+    except smtplib.SMTPRecipientsRefused as exc:
+        logger.error("Failed to send email report: recipients rejected: %s", exc.recipients)
+        return {"status": "error", "message": f"SMTP rejected recipient address(es): {', '.join(exc.recipients.keys())}"}
     except Exception as exc:
         logger.error("Failed to send email report: %s", exc)
         return {"status": "error", "message": str(exc)}
