@@ -793,8 +793,10 @@ def get_time_login_summary(date: str | None = None):
 @app.post("/api/time-login/slot/{slot_time}")
 def trigger_time_login_slot(slot_time: str):
     """Manually trigger processing of a time slot."""
-    if slot_time not in tl.SLOT_TIMES:
-        raise HTTPException(400, f"Invalid slot time. Valid: {tl.SLOT_TIMES}")
+    config = tl.get_config()
+    active_slot_times = config.get("slot_times", tl.DEFAULT_SLOT_TIMES)
+    if slot_time not in active_slot_times:
+        raise HTTPException(400, f"Invalid slot time. Valid: {active_slot_times}")
     return tl.process_slot(slot_time)
 
 @app.post("/api/time-login/out-check/{check_time}")
