@@ -3,6 +3,7 @@
     "enabled": false,
     "slots": {},
     "slot_times": [
+      "08:00",
       "10:00",
       "11:00"
     ],
@@ -131,6 +132,17 @@
       "slot_label": "Slot 10:00",
       "range_from": "2026-07-01T10:00:00",
       "range_to": "2026-07-01T10:00:00",
+      "punches_found": 0,
+      "users_recorded": 0,
+      "already_recorded": 0
+    },
+    {
+      "timestamp": "2026-07-01T16:52:45+05:30",
+      "action": "slot_sync",
+      "slot_time": "08:00",
+      "slot_label": "Slot 08:00",
+      "range_from": "2026-07-01T08:00:00",
+      "range_to": "2026-07-01T08:00:00",
       "punches_found": 0,
       "users_recorded": 0,
       "already_recorded": 0

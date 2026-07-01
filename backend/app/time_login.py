@@ -169,7 +169,8 @@ def process_slot(slot_time: str) -> dict[str, Any]:
     config = data.get("config", {})
     slot_ranges = config.get("slot_ranges", {})
     slot_dt = _parse_slot_time(slot_time)
-    offset_from, offset_to = slot_ranges.get(slot_time, (0, 0))
+    # Default range: -30 min to +30 min around slot time when no custom range configured
+    offset_from, offset_to = slot_ranges.get(slot_time, (-30, 30))
     range_from = slot_dt + timedelta(minutes=offset_from)
     range_to = slot_dt + timedelta(minutes=offset_to)
 
