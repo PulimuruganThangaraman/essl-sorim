@@ -12,7 +12,7 @@ except ImportError:
     from config import DeviceConfig, ROOT_DIR  # type: ignore[no-redef]
 
 
-DB_PATH = Path(os.getenv("BIOMETRIC_DB_FILE", str(ROOT_DIR / "backend" / "data" / "attendance.db")))
+DB_PATH = Path(os.getenv("BIOMETRIC_DB_FILE", str(ROOT_DIR / "backend" / "data" / "attendance.db"))).resolve()
 
 
 def now_iso() -> str:
