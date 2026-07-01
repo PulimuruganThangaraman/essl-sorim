@@ -15,6 +15,11 @@ import {
   LogOut,
   Play,
   Settings,
+  Edit2,
+  Trash2,
+  X,
+  Check,
+  Send,
 } from 'lucide-react';
 import { request } from '../api';
 
@@ -35,6 +40,13 @@ export default function TimeLogin() {
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [message, setMessage] = useState('');
   const [msgType, setMsgType] = useState('info');
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const [zohoLoading, setZohoLoading] = useState(false);
+  const [selectedRecords, setSelectedRecords] = useState(new Set());
+  const [slotConfig, setSlotConfig] = useState([]);
+  const [editingSlot, setEditingSlot] = useState(null);
+  const [editSlotValue, setEditSlotValue] = useState('');
 
   function showMsg(text, type = 'info') {
     setMessage(text);
@@ -55,6 +67,7 @@ export default function TimeLogin() {
       setStats(statsData);
       setSummary(summaryData);
       setRecords(recordsData);
+      setSelectedRecords(new Set());
     } catch (err) {
       showMsg('Failed to load Time Login data: ' + err.message, 'error');
     } finally {
@@ -65,7 +78,6 @@ export default function TimeLogin() {
   useEffect(() => { loadData(); }, [date]);
 
   async function toggleConfig(key, value) {
-    const updated = { ...config, [key]: value };
     try {
       const result = await request('/api/time-login/config', {
         method: 'POST',
@@ -112,15 +124,72 @@ export default function TimeLogin() {
     }
   }
 
-  const slotTimes = ['08:00', '10:00', '13:00', '15:00', '17:00'];
-  const slotLabels = {
-    '08:00': 'Morning 8AM (07:40-08:00)',
-    '10:00': 'Mid-Morning 10AM (08:01-10:00)',
-    '13:00': 'Lunch 1PM (10:01-13:00)',
-    '15:00': 'Afternoon 3PM (13:01-15:00)',
-    '17:00': 'Evening 5PM (15:01-17:00)',
+  async function saveTimeEdit(recordId, field, value) {
+    try {
+      await request(`/api/time-login/records/${recordId}/update-time`, {
+        method: 'POST',
+        body: JSON.stringify({ field, value }),
+      });
+      showMsg('Time updated successfully', 'success');
+      setEditingRecord(null);
+      loadData();
+    } catch (err) {
+      showMsg('Failed to update time: ' + err.message, 'error');
+    }
+  }
+
+  async function deleteRecord(recordId) {
+    if (!confirm('Are you sure you want to delete this record?')) return;
+    try {
+      await request(`/api/time-login/records/${recordId}`, { method: 'DELETE' });
+      showMsg('Record deleted', 'success');
+      loadData();
+    } catch (err) {
+      showMsg('Delete failed: ' + err.message, 'error');
+    }
+  }
+
+  async function syncToZoho() {
+    setZohoLoading(true);
+    try {
+      const result = await request('/api/time-login/sync-zoho', {
+        method: 'POST',
+        body: JSON.stringify({ record_ids: Array.from(selectedRecords) }),
+      });
+      showMsg(result.message, result.status === 'ok' ? 'success' : 'error');
+      setSelectedRecords(new Set());
+      loadData();
+    } catch (err) {
+      showMsg('Zoho sync failed: ' + err.message, 'error');
+    } finally {
+      setZohoLoading(false);
+    }
+  }
+
+  function startEdit(record, field) {
+    const current = field === 'first_in_time' ? record.first_in_time : record.last_out_time;
+    setEditingRecord({ recordId: `${record.user_id}|${record.date}`, field });
+    setEditValue(current ? new Date(current).toISOString().slice(11, 16) : '');
+  }
+
+  function toggleSelect(recordId) {
+    setSelectedRecords((prev) => {
+      const next = new Set(prev);
+      if (next.has(recordId)) next.delete(recordId);
+      else next.add(recordId);
+      return next;
+    });
+  }
+
+  const slotTimes = config.slot_times || ['08:00', '10:00', '13:00', '15:00', '17:00'];
+  const slotLabels = config.slot_labels || {
+    '08:00': 'Morning 8AM',
+    '10:00': 'Mid-Morning 10AM',
+    '13:00': 'Lunch 1PM',
+    '15:00': 'Afternoon 3PM',
+    '17:00': 'Evening 5PM',
   };
-  const outTimes = ['22:00', '23:00'];
+  const outTimes = config.out_times || ['22:00', '23:00'];
 
   if (loading && !stats) {
     return (
@@ -162,7 +231,7 @@ export default function TimeLogin() {
       {stats && (
         <div className="timeLoginStats">
           <div className="statCard">
-            <div className="statIcon"><Users size={20} /></div>
+            <div className="statIcon"><LogIn size={20} /></div>
             <div className="statBody">
               <span className="statValue">{stats.today_recorded_in}</span>
               <span className="statLabel">IN Recorded Today</span>
@@ -214,7 +283,7 @@ export default function TimeLogin() {
         </label>
       </div>
 
-      {/* Time Slot Cards */}
+      {/* IN Time Slots */}
       <div className="tlSection">
         <h2>IN Time Slots</h2>
         <p className="tlSectionDesc">
@@ -234,7 +303,7 @@ export default function TimeLogin() {
                   <Icon size={24} />
                   <h3>{slot}</h3>
                 </div>
-                <p className="tlSlotLabel">{slotLabels[slot]}</p>
+                <p className="tlSlotLabel">{slotLabels[slot] || `Slot ${slot}`}</p>
                 <div className="tlSlotBody">
                   <div className="tlSlotCount">
                     <Users size={14} />
@@ -296,80 +365,128 @@ export default function TimeLogin() {
         </div>
       </div>
 
-      {/* Slot Summary Table */}
-      {summary && summary.slots && summary.slots.length > 0 && (
-        <div className="tlSection">
-          <h2>IN Slot Summary for {date}</h2>
-          {summary.slots.map((slot) => (
-            <div key={slot.slot_time} className="tlSlotSummary">
-              <h4 className="tlSlotSummaryTitle">
-                {slot.slot_label} ({slot.slot_time})
-                <span className="tlSlotSummaryCount">{slot.total_users} users</span>
-              </h4>
-              {slot.users.length > 0 ? (
-                <table className="tlSlotUsersTable">
-                  <thead>
-                    <tr>
-                      <th>User ID</th>
-                      <th>Name</th>
-                      <th>First IN Time</th>
-                      <th>OUT Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {slot.users.map((user) => (
-                      <tr key={user.user_id}>
-                        <td className="mono">{user.user_id}</td>
-                        <td>{user.user_name || 'N/A'}</td>
-                        <td className="mono">{user.first_in_time ? new Date(user.first_in_time).toLocaleTimeString() : 'N/A'}</td>
-                        <td>
-                          {user.out_status === 'recorded' ? (
-                            <span className="statusOk"><CheckCircle size={14} /> OUT</span>
-                          ) : (
-                            <span className="statusWarn"><AlertTriangle size={14} /> Pending</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p className="emptyText">No users recorded in this slot.</p>
-              )}
-            </div>
-          ))}
-
-          {/* Pending OUT */}
-          {summary.pending_out && summary.pending_out.length > 0 && (
-            <div className="tlSlotSummary warn">
-              <h4 className="tlSlotSummaryTitle">
-                <AlertTriangle size={16} />
-                Pending OUT ({summary.pending_out.length} users)
-              </h4>
-              <table className="tlSlotUsersTable">
-                <thead>
-                  <tr>
-                    <th>User ID</th>
-                    <th>Name</th>
-                    <th>First IN Time</th>
-                    <th>Slot</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {summary.pending_out.map((user) => (
-                    <tr key={user.user_id}>
-                      <td className="mono">{user.user_id}</td>
-                      <td>{user.user_name || 'N/A'}</td>
-                      <td className="mono">{user.first_in_time ? new Date(user.first_in_time).toLocaleTimeString() : 'N/A'}</td>
-                      <td>{user.slot_label || user.slot_time}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+      {/* Records Table */}
+      <div className="tlSection">
+        <div className="tlSectionHeader">
+          <h2>Time Login Records for {date}</h2>
+          <div className="tlSectionActions">
+            {selectedRecords.size > 0 && (
+              <button
+                type="button"
+                className="btnSmall primary"
+                onClick={syncToZoho}
+                disabled={zohoLoading}
+              >
+                <Send size={14} />
+                {zohoLoading ? 'Syncing...' : `Sync to Zoho (${selectedRecords.size})`}
+              </button>
+            )}
+          </div>
         </div>
-      )}
+        <div className="tlRecordsTable">
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" onChange={(e) => {
+                  if (e.target.checked) setSelectedRecords(new Set(records.map(r => `${r.user_id}|${r.date}`)));
+                  else setSelectedRecords(new Set());
+                }} /></th>
+                <th>User ID</th>
+                <th>Name</th>
+                <th>First IN</th>
+                <th>Last OUT</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {records.map((record) => {
+                const recordId = `${record.user_id}|${record.date}`;
+                const isSelected = selectedRecords.has(recordId);
+                const isEditing = editingRecord?.recordId === recordId;
+
+                return (
+                  <tr key={recordId} className={isSelected ? 'selected' : ''}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelect(recordId)}
+                      />
+                    </td>
+                    <td className="mono">{record.user_id}</td>
+                    <td>{record.user_name || 'N/A'}</td>
+                    <td>
+                      {isEditing && editingRecord.field === 'first_in_time' ? (
+                        <div className="editTime">
+                          <input
+                            type="time"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            step="60"
+                          />
+                          <button onClick={() => saveTimeEdit(recordId, 'first_in_time', editValue + ':00')}><Check size={14} /></button>
+                          <button onClick={() => setEditingRecord(null)}><X size={14} /></button>
+                        </div>
+                      ) : (
+                        <span
+                          className="timeValue"
+                          onClick={() => startEdit(record, 'first_in_time')}
+                        >
+                          {record.first_in_time ? new Date(record.first_in_time).toLocaleTimeString() : 'N/A'}
+                          {record.first_in_time && <Edit2 size={12} className="editIcon" />}
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      {isEditing && editingRecord.field === 'last_out_time' ? (
+                        <div className="editTime">
+                          <input
+                            type="time"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            step="60"
+                          />
+                          <button onClick={() => saveTimeEdit(recordId, 'last_out_time', editValue + ':00')}><Check size={14} /></button>
+                          <button onClick={() => setEditingRecord(null)}><X size={14} /></button>
+                        </div>
+                      ) : (
+                        <span
+                          className="timeValue"
+                          onClick={() => startEdit(record, 'last_out_time')}
+                        >
+                          {record.last_out_time ? new Date(record.last_out_time).toLocaleTimeString() : 'N/A'}
+                          {record.last_out_time && <Edit2 size={12} className="editIcon" />}
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <span className={`statusBadge ${record.out_status === 'recorded' ? 'ok' : 'warn'}`}>
+                        {record.out_status === 'recorded' ? 'Complete' : 'Pending OUT'}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btnTiny btnDanger"
+                        onClick={() => deleteRecord(recordId)}
+                        title="Delete record"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {records.length === 0 && (
+                <tr>
+                  <td colSpan="7" className="emptyRow">No records for this date</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* Recent Logs */}
       {stats && stats.recent_logs && stats.recent_logs.length > 0 && (
