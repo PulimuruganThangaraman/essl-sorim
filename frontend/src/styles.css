@@ -2250,6 +2250,18 @@ td em.muted { color: #a0b0a8; font-style: italic; }
   .trendException { justify-self: start; }
 }
 
+/* TIME LOGIN ADD TIME */
+.tlAddTime {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+.tlAddTime .timeInput {
+  width: 160px;
+  min-height: 38px;
+}
+
 /* TIME LOGIN */
 .timeLoginStats {
   display: grid;

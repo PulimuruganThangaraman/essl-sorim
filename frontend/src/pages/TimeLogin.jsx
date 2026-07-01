@@ -191,6 +191,10 @@ export default function TimeLogin() {
   };
   const outTimes = config.out_times || ['22:00', '23:00'];
 
+  const [scheduleMode, setScheduleMode] = useState('slots');
+  const [newSlotTime, setNewSlotTime] = useState('');
+  const [newOutTime, setNewOutTime] = useState('');
+
   if (loading && !stats) {
     return (
       <div className="pageContainer">
@@ -334,6 +338,35 @@ export default function TimeLogin() {
             );
           })}
         </div>
+        <div className="tlAddTime">
+          <input
+            type="time"
+            value={newSlotTime}
+            onChange={(e) => setNewSlotTime(e.target.value)}
+            className="timeInput"
+          />
+          <button
+            type="button"
+            className="btnSmall"
+            onClick={async () => {
+              if (!newSlotTime || slotTimes.includes(newSlotTime)) return;
+              const updated = [...slotTimes, newSlotTime].sort();
+              try {
+                const result = await request('/api/time-login/config', {
+                  method: 'POST',
+                  body: JSON.stringify({ slot_times: updated }),
+                });
+                setConfig((prev) => ({ ...prev, ...result }));
+                setNewSlotTime('');
+                showMsg('IN slot added', 'success');
+              } catch (err) {
+                showMsg('Failed to add slot', 'error');
+              }
+            }}
+          >
+            Add IN Slot
+          </button>
+        </div>
       </div>
 
       {/* OUT Check Cards */}
@@ -362,6 +395,35 @@ export default function TimeLogin() {
               </div>
             </div>
           ))}
+        </div>
+        <div className="tlAddTime">
+          <input
+            type="time"
+            value={newOutTime}
+            onChange={(e) => setNewOutTime(e.target.value)}
+            className="timeInput"
+          />
+          <button
+            type="button"
+            className="btnSmall"
+            onClick={async () => {
+              if (!newOutTime || outTimes.includes(newOutTime)) return;
+              const updated = [...outTimes, newOutTime].sort();
+              try {
+                const result = await request('/api/time-login/config', {
+                  method: 'POST',
+                  body: JSON.stringify({ out_times: updated }),
+                });
+                setConfig((prev) => ({ ...prev, ...result }));
+                setNewOutTime('');
+                showMsg('OUT check time added', 'success');
+              } catch (err) {
+                showMsg('Failed to add OUT time', 'error');
+              }
+            }}
+          >
+            Add OUT Check
+          </button>
         </div>
       </div>
 
