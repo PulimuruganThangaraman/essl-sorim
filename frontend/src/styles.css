@@ -2263,6 +2263,72 @@ td em.muted { color: #a0b0a8; font-style: italic; }
   min-height: 38px;
 }
 
+/* TIME LOGIN SLOT GROUPS */
+.tlSlotGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.tlSlotGroup {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.tlSlotGroupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface-soft);
+  border-bottom: 1px solid var(--border);
+}
+.tlSlotGroupHeader h4 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--heading);
+}
+.tlSlotGroupCount {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--surface);
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+.tlSlotGroup table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.tlSlotGroup th,
+.tlSlotGroup td {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.tlSlotGroup th {
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.tlSlotGroup td {
+  color: var(--text);
+}
+.tlSlotGroup tbody tr:last-child td {
+  border-bottom: none;
+}
+.tlSlotGroup tbody tr:hover td {
+  background: var(--surface-soft);
+}
+.tlSlotGroup tbody tr.selected td {
+  background: #e6f4ef;
+}
+
 /* TIME LOGIN */
 .timeLoginStats {
   display: grid;
@@ -2492,3 +2558,7 @@ td em.muted { color: #a0b0a8; font-style: italic; }
 :root[data-theme="dark"] .statusOk { color: #9fe1c5; }
 :root[data-theme="dark"] .statusWarn { color: #f1d89a; }
 :root[data-theme="dark"] .timeValue:hover { background: #22302b; }
+:root[data-theme="dark"] .tlSlotGroupHeader { background: #22302b; }
+:root[data-theme="dark"] .tlSlotGroup tbody tr:hover td { background: #22302b; }
+:root[data-theme="dark"] .tlSlotGroup tbody tr.selected td { background: #1a2a22; }
+:root[data-theme="dark"] .tlSlotGroupCount { background: #1b2421; border-color: #34443d; }

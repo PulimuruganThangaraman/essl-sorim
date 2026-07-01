@@ -66,7 +66,16 @@ export default function TimeLogin() {
       setConfig(configData);
       setStats(statsData);
       setSummary(summaryData);
-      setRecords(recordsData);
+      // Sort records by slot_time ascending, then by first_in_time
+      const sortedRecords = [...recordsData].sort((a, b) => {
+        const slotA = a.slot_time || '99:99';
+        const slotB = b.slot_time || '99:99';
+        if (slotA !== slotB) return slotA.localeCompare(slotB);
+        const timeA = a.first_in_time || '';
+        const timeB = b.first_in_time || '';
+        return timeA.localeCompare(timeB);
+      });
+      setRecords(sortedRecords);
       setSelectedRecords(new Set());
     } catch (err) {
       showMsg('Failed to load Time Login data: ' + err.message, 'error');
@@ -526,7 +535,7 @@ export default function TimeLogin() {
         </div>
       </div>
 
-      {/* Records Table */}
+      {/* Records Table - Grouped by Slot */}
       <div className="tlSection">
         <div className="tlSectionHeader">
           <h2>Time Login Records for {date}</h2>
@@ -545,107 +554,141 @@ export default function TimeLogin() {
           </div>
         </div>
         <div className="tlRecordsTable">
-          <table>
-            <thead>
-              <tr>
-                <th><input type="checkbox" onChange={(e) => {
-                  if (e.target.checked) setSelectedRecords(new Set(records.map(r => `${r.user_id}|${r.date}`)));
-                  else setSelectedRecords(new Set());
-                }} /></th>
-                <th>User ID</th>
-                <th>Name</th>
-                <th>First IN</th>
-                <th>Last OUT</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {records.map((record) => {
-                const recordId = `${record.user_id}|${record.date}`;
-                const isSelected = selectedRecords.has(recordId);
-                const isEditing = editingRecord?.recordId === recordId;
+          {(() => {
+            // Group records by slot_time
+            const slotGroups = {};
+            records.forEach((record) => {
+              const slotKey = record.slot_time || 'Unassigned';
+              if (!slotGroups[slotKey]) {
+                slotGroups[slotKey] = [];
+              }
+              slotGroups[slotKey].push(record);
+            });
 
-                return (
-                  <tr key={recordId} className={isSelected ? 'selected' : ''}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleSelect(recordId)}
-                      />
-                    </td>
-                    <td className="mono">{record.user_id}</td>
-                    <td>{record.user_name || 'N/A'}</td>
-                    <td>
-                      {isEditing && editingRecord.field === 'first_in_time' ? (
-                        <div className="editTime">
-                          <input
-                            type="time"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            step="60"
-                          />
-                          <button onClick={() => saveTimeEdit(recordId, 'first_in_time', editValue + ':00')}><Check size={14} /></button>
-                          <button onClick={() => setEditingRecord(null)}><X size={14} /></button>
-                        </div>
-                      ) : (
-                        <span
-                          className="timeValue"
-                          onClick={() => startEdit(record, 'first_in_time')}
-                        >
-                          {record.first_in_time ? new Date(record.first_in_time).toLocaleTimeString() : 'N/A'}
-                          {record.first_in_time && <Edit2 size={12} className="editIcon" />}
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      {isEditing && editingRecord.field === 'last_out_time' ? (
-                        <div className="editTime">
-                          <input
-                            type="time"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            step="60"
-                          />
-                          <button onClick={() => saveTimeEdit(recordId, 'last_out_time', editValue + ':00')}><Check size={14} /></button>
-                          <button onClick={() => setEditingRecord(null)}><X size={14} /></button>
-                        </div>
-                      ) : (
-                        <span
-                          className="timeValue"
-                          onClick={() => startEdit(record, 'last_out_time')}
-                        >
-                          {record.last_out_time ? new Date(record.last_out_time).toLocaleTimeString() : 'N/A'}
-                          {record.last_out_time && <Edit2 size={12} className="editIcon" />}
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <span className={`statusBadge ${record.out_status === 'recorded' ? 'ok' : 'warn'}`}>
-                        {record.out_status === 'recorded' ? 'Complete' : 'Pending OUT'}
-                      </span>
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btnTiny btnDanger"
-                        onClick={() => deleteRecord(recordId)}
-                        title="Delete record"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-              {records.length === 0 && (
-                <tr>
-                  <td colSpan="7" className="emptyRow">No records for this date</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+            // Sort slot keys ascending
+            const sortedSlotKeys = Object.keys(slotGroups).sort((a, b) => {
+              if (a === 'Unassigned') return 1;
+              if (b === 'Unassigned') return -1;
+              return a.localeCompare(b);
+            });
+
+            if (records.length === 0) {
+              return (
+                <table>
+                  <tbody>
+                    <tr>
+                      <td colSpan="7" className="emptyRow">No records for this date</td>
+                    </tr>
+                  </tbody>
+                </table>
+              );
+            }
+
+            return (
+              <div className="tlSlotGroups">
+                {sortedSlotKeys.map((slotKey) => {
+                  const slotRecords = slotGroups[slotKey];
+                  const slotLabel = slotTimes.find(t => t === slotKey)
+                    ? (slotLabels[slotKey] || `Slot ${slotKey}`)
+                    : 'Unassigned';
+
+                  return (
+                    <div key={slotKey} className="tlSlotGroup">
+                      <div className="tlSlotGroupHeader">
+                        <h4>{slotLabel}</h4>
+                        <span className="tlSlotGroupCount">{slotRecords.length} user{slotRecords.length !== 1 ? 's' : ''}</span>
+                      </div>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>User ID</th>
+                            <th>Name</th>
+                            <th>First IN</th>
+                            <th>Last OUT</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {slotRecords.map((record) => {
+                            const recordId = `${record.user_id}|${record.date}`;
+                            const isSelected = selectedRecords.has(recordId);
+                            const isEditing = editingRecord?.recordId === recordId;
+
+                            return (
+                              <tr key={recordId} className={isSelected ? 'selected' : ''}>
+                                <td className="mono">{record.user_id}</td>
+                                <td>{record.user_name || 'N/A'}</td>
+                                <td>
+                                  {isEditing && editingRecord.field === 'first_in_time' ? (
+                                    <div className="editTime">
+                                      <input
+                                        type="time"
+                                        value={editValue}
+                                        onChange={(e) => setEditValue(e.target.value)}
+                                        step="60"
+                                      />
+                                      <button onClick={() => saveTimeEdit(recordId, 'first_in_time', editValue + ':00')}><Check size={14} /></button>
+                                      <button onClick={() => setEditingRecord(null)}><X size={14} /></button>
+                                    </div>
+                                  ) : (
+                                    <span
+                                      className="timeValue"
+                                      onClick={() => startEdit(record, 'first_in_time')}
+                                    >
+                                      {record.first_in_time ? new Date(record.first_in_time).toLocaleTimeString() : 'N/A'}
+                                      {record.first_in_time && <Edit2 size={12} className="editIcon" />}
+                                    </span>
+                                  )}
+                                </td>
+                                <td>
+                                  {isEditing && editingRecord.field === 'last_out_time' ? (
+                                    <div className="editTime">
+                                      <input
+                                        type="time"
+                                        value={editValue}
+                                        onChange={(e) => setEditValue(e.target.value)}
+                                        step="60"
+                                      />
+                                      <button onClick={() => saveTimeEdit(recordId, 'last_out_time', editValue + ':00')}><Check size={14} /></button>
+                                      <button onClick={() => setEditingRecord(null)}><X size={14} /></button>
+                                    </div>
+                                  ) : (
+                                    <span
+                                      className="timeValue"
+                                      onClick={() => startEdit(record, 'last_out_time')}
+                                    >
+                                      {record.last_out_time ? new Date(record.last_out_time).toLocaleTimeString() : 'N/A'}
+                                      {record.last_out_time && <Edit2 size={12} className="editIcon" />}
+                                    </span>
+                                  )}
+                                </td>
+                                <td>
+                                  <span className={`statusBadge ${record.out_status === 'recorded' ? 'ok' : 'warn'}`}>
+                                    {record.out_status === 'recorded' ? 'Complete' : 'Pending OUT'}
+                                  </span>
+                                </td>
+                                <td>
+                                  <button
+                                    type="button"
+                                    className="btnTiny btnDanger"
+                                    onClick={() => deleteRecord(recordId)}
+                                    title="Delete record"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       </div>
 
