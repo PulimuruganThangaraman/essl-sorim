@@ -33,6 +33,7 @@ try:
     from . import db
     from .config import DeviceConfig, load_devices
     from .zk_client import DEVICE_TIMEZONE, DeviceLibraryMissing, fetch_device_payload, get_device_biometric_templates, get_all_device_details, clear_biometric_from_device, restart_device, enable_device, disable_device, get_device_settings, set_device_parameter
+    from . import time_login as tl
 except ImportError:
     _backend_dir = str(Path(__file__).resolve().parent.parent)
     if _backend_dir not in sys.path:
@@ -40,6 +41,7 @@ except ImportError:
     import db
     from config import DeviceConfig, load_devices
     from zk_client import DEVICE_TIMEZONE, DeviceLibraryMissing, fetch_device_payload, get_device_biometric_templates, get_all_device_details, clear_biometric_from_device, restart_device, enable_device, disable_device, get_device_settings, set_device_parameter
+    import time_login as tl
 
 app = FastAPI(title="Sorim CRM API", version="1.0.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -283,9 +285,11 @@ def startup():
     except Exception:
         schedule = "23:30"
     _report_log.info("Email scheduler started (daily at %s)", schedule)
+    tl.start_scheduler()
+    _log.info("TimeLogin scheduler started")
 
 def shutdown():
-    _auto_sync_stop.set(); _report_stop.set()
+    _auto_sync_stop.set(); _report_stop.set(); tl.stop_scheduler()
     if _report_thread: _report_thread.join(timeout=5)
 
 # ---------- API ----------
@@ -762,6 +766,43 @@ def sync_attendance(payload: SyncRequest):
             results.append({"device": device.name, "ip": device.ip, "status": "error", "error": msg})
     db.finish_sync_run(rid, status="partial" if fail else "ok", message=f"{len(configured)-fail}/{len(configured)} synced", device_count=len(configured), user_count=tu, punch_count=tp)
     return {"run_id": rid, "status": "partial" if fail else "ok", "devices": results, "users_synced": tu, "new_punches": tp}
+
+# ---------- Time Login API ----------
+_query_time_iso = _query_time
+
+@app.get("/api/time-login/config")
+def get_time_login_config():
+    return tl.get_config()
+
+@app.post("/api/time-login/config")
+def set_time_login_config(payload: dict):
+    return tl.save_config(payload)
+
+@app.get("/api/time-login/records")
+def get_time_login_records(date: str | None = None, user_id: str | None = None):
+    return tl.get_records(date_str=date, user_id=user_id)
+
+@app.get("/api/time-login/stats")
+def get_time_login_stats():
+    return tl.get_stats()
+
+@app.get("/api/time-login/summary")
+def get_time_login_summary(date: str | None = None):
+    return tl.get_slot_summary(date_str=date)
+
+@app.post("/api/time-login/slot/{slot_time}")
+def trigger_time_login_slot(slot_time: str):
+    """Manually trigger processing of a time slot."""
+    if slot_time not in tl.SLOT_TIMES:
+        raise HTTPException(400, f"Invalid slot time. Valid: {tl.SLOT_TIMES}")
+    return tl.process_slot(slot_time)
+
+@app.post("/api/time-login/out-check/{check_time}")
+def trigger_time_login_out(check_time: str):
+    """Manually trigger an OUT check."""
+    if check_time not in tl.OUT_TIMES:
+        raise HTTPException(400, f"Invalid check time. Valid: {tl.OUT_TIMES}")
+    return tl.process_out_check(check_time)
 
 # Serve built frontend after API routes so /api/* is never shadowed.
 _static_dir = os.getenv("STATIC_DIR", str(Path(__file__).resolve().parent.parent / "static"))

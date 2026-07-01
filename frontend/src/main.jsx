@@ -16,11 +16,12 @@ import Leave from './pages/Leave';
 import Assets from './pages/Assets';
 import Documents from './pages/Documents';
 import Performance from './pages/Performance';
+import TimeLogin from './pages/TimeLogin';
 import Settings from './pages/Settings';
 import './styles.css';
 
 const PREF_KEY = 'sorim_crm_prefs';
-const VALID_DEFAULT_PAGES = new Set(['dashboard', 'attendance', 'devices', 'users', 'punches', 'employees', 'leave', 'assets', 'documents', 'performance', 'reports', 'exceptions', 'payroll', 'analytics', 'settings']);
+const VALID_DEFAULT_PAGES = new Set(['dashboard', 'attendance', 'devices', 'users', 'punches', 'time-login', 'employees', 'leave', 'assets', 'documents', 'performance', 'reports', 'exceptions', 'payroll', 'analytics', 'settings']);
 
 function getDefaultRoute() {
   try {
@@ -55,6 +56,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="exceptions" element={<Exceptions />} />
           <Route path="payroll" element={<Payroll />} />
           <Route path="analytics" element={<Analytics />} />
+          <Route path="time-login" element={<TimeLogin />} />
           <Route path="settings" element={<Settings />} />
         </Route>
     </Routes>
