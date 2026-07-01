@@ -8,83 +8,66 @@
       "15:00": true,
       "17:00": true
     },
-    "out_check_enabled": true,
     "slot_times": [
       "08:00",
       "10:00",
       "13:00",
       "15:00",
       "17:00"
-    ]
+    ],
+    "out_check_enabled": true,
+    "out_times": [
+      "22:00",
+      "23:00"
+    ],
+    "slot_labels": {
+      "08:00": "Morning 8AM",
+      "10:00": "Mid-Morning 10AM",
+      "13:00": "Lunch 1PM",
+      "15:00": "Afternoon 3PM",
+      "17:00": "Evening 5PM"
+    },
+    "slot_ranges": {
+      "08:00": [
+        -20,
+        0
+      ],
+      "10:00": [
+        1,
+        120
+      ],
+      "13:00": [
+        1,
+        180
+      ],
+      "15:00": [
+        1,
+        120
+      ],
+      "17:00": [
+        1,
+        120
+      ]
+    },
+    "zoho_sync_enabled": false
   },
   "records": {
-    "ST-26-051|2026-07-01": {
-      "user_id": "ST-26-051",
-      "user_name": "Shatyapriya .V",
-      "date": "2026-07-01",
-      "first_in_time": "2026-07-01T07:40:40+05:30",
-      "first_in_punch_id": 128523469,
-      "slot_time": "08:00",
-      "slot_label": "Morning 8AM",
-      "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:06+05:30",
-      "last_out_time": null,
-      "last_out_punch_id": null,
-      "out_status": "pending",
-      "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:06+05:30",
-      "updated_at": "2026-07-01T15:16:06+05:30"
-    },
-    "ST-26-079|2026-07-01": {
-      "user_id": "ST-26-079",
-      "user_name": "MOHAMMED HARISH",
-      "date": "2026-07-01",
-      "first_in_time": "2026-07-01T07:41:01+05:30",
-      "first_in_punch_id": 128523471,
-      "slot_time": "08:00",
-      "slot_label": "Morning 8AM",
-      "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:06+05:30",
-      "last_out_time": null,
-      "last_out_punch_id": null,
-      "out_status": "pending",
-      "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:06+05:30",
-      "updated_at": "2026-07-01T15:16:06+05:30"
-    },
     "ST-25-037|2026-07-01": {
       "user_id": "ST-25-037",
       "user_name": "Pulimurugan.T",
       "date": "2026-07-01",
-      "first_in_time": "2026-07-01T07:43:46+05:30",
-      "first_in_punch_id": 128523472,
-      "slot_time": "08:00",
-      "slot_label": "Morning 8AM",
+      "first_in_time": "2026-07-01T10:02:43+05:30",
+      "first_in_punch_id": 132148360,
+      "slot_time": "10:00",
+      "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:06+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:06+05:30",
-      "updated_at": "2026-07-01T15:16:06+05:30"
-    },
-    "1002|2026-07-01": {
-      "user_id": "1002",
-      "user_name": "10002",
-      "date": "2026-07-01",
-      "first_in_time": "2026-07-01T07:57:25+05:30",
-      "first_in_punch_id": 128523478,
-      "slot_time": "08:00",
-      "slot_label": "Morning 8AM",
-      "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:06+05:30",
-      "last_out_time": null,
-      "last_out_punch_id": null,
-      "out_status": "pending",
-      "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:06+05:30",
-      "updated_at": "2026-07-01T15:16:06+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-25-035|2026-07-01": {
       "user_id": "ST-25-035",
@@ -95,13 +78,30 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
+    },
+    "1002|2026-07-01": {
+      "user_id": "1002",
+      "user_name": "10002",
+      "date": "2026-07-01",
+      "first_in_time": "2026-07-01T10:05:03+05:30",
+      "first_in_punch_id": 132249994,
+      "slot_time": "10:00",
+      "slot_label": "Mid-Morning 10AM",
+      "in_status": "recorded",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
+      "last_out_time": null,
+      "last_out_punch_id": null,
+      "out_status": "pending",
+      "out_synced_at": null,
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-053|2026-07-01": {
       "user_id": "ST-26-053",
@@ -112,13 +112,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-085|2026-07-01": {
       "user_id": "ST-26-085",
@@ -129,13 +129,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-25-004|2026-07-01": {
       "user_id": "ST-25-004",
@@ -146,13 +146,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-063|2026-07-01": {
       "user_id": "ST-26-063",
@@ -163,13 +163,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-087|2026-07-01": {
       "user_id": "ST-26-087",
@@ -180,13 +180,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-075|2026-07-01": {
       "user_id": "ST-26-075",
@@ -197,13 +197,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-CN-002|2026-07-01": {
       "user_id": "ST-CN-002",
@@ -214,13 +214,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-049|2026-07-01": {
       "user_id": "ST-26-049",
@@ -231,13 +231,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-092|2026-07-01": {
       "user_id": "ST-26-092",
@@ -248,13 +248,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-25-010|2026-07-01": {
       "user_id": "ST-25-010",
@@ -265,13 +265,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-25-003|2026-07-01": {
       "user_id": "ST-25-003",
@@ -282,13 +282,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-091|2026-07-01": {
       "user_id": "ST-26-091",
@@ -299,13 +299,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-054|2026-07-01": {
       "user_id": "ST-26-054",
@@ -316,13 +316,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-25-028|2026-07-01": {
       "user_id": "ST-25-028",
@@ -333,13 +333,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-040|2026-07-01": {
       "user_id": "ST-26-040",
@@ -350,13 +350,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-044|2026-07-01": {
       "user_id": "ST-26-044",
@@ -367,13 +367,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-043|2026-07-01": {
       "user_id": "ST-26-043",
@@ -384,13 +384,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-039|2026-07-01": {
       "user_id": "ST-26-039",
@@ -401,13 +401,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-25-014|2026-07-01": {
       "user_id": "ST-25-014",
@@ -418,13 +418,30 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
+    },
+    "ST-26-051|2026-07-01": {
+      "user_id": "ST-26-051",
+      "user_name": "Shatyapriya .V",
+      "date": "2026-07-01",
+      "first_in_time": "2026-07-01T10:52:24+05:30",
+      "first_in_punch_id": 133876755,
+      "slot_time": "10:00",
+      "slot_label": "Mid-Morning 10AM",
+      "in_status": "recorded",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
+      "last_out_time": null,
+      "last_out_punch_id": null,
+      "out_status": "pending",
+      "out_synced_at": null,
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-048|2026-07-01": {
       "user_id": "ST-26-048",
@@ -435,13 +452,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-25-023|2026-07-01": {
       "user_id": "ST-25-023",
@@ -452,13 +469,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-093|2026-07-01": {
       "user_id": "ST-26-093",
@@ -469,13 +486,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-056|2026-07-01": {
       "user_id": "ST-26-056",
@@ -486,13 +503,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-25-036|2026-07-01": {
       "user_id": "ST-25-036",
@@ -503,13 +520,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-072|2026-07-01": {
       "user_id": "ST-26-072",
@@ -520,13 +537,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-038|2026-07-01": {
       "user_id": "ST-26-038",
@@ -537,13 +554,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-082|2026-07-01": {
       "user_id": "ST-26-082",
@@ -554,13 +571,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-088|2026-07-01": {
       "user_id": "ST-26-088",
@@ -571,13 +588,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-071|2026-07-01": {
       "user_id": "ST-26-071",
@@ -588,13 +605,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-041|2026-07-01": {
       "user_id": "ST-26-041",
@@ -605,13 +622,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-045|2026-07-01": {
       "user_id": "ST-26-045",
@@ -622,13 +639,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-078|2026-07-01": {
       "user_id": "ST-26-078",
@@ -639,13 +656,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-074|2026-07-01": {
       "user_id": "ST-26-074",
@@ -656,13 +673,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-CN-013|2026-07-01": {
       "user_id": "ST-CN-013",
@@ -673,13 +690,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "Temp0002|2026-07-01": {
       "user_id": "Temp0002",
@@ -690,13 +707,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-083|2026-07-01": {
       "user_id": "ST-26-083",
@@ -707,13 +724,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-25-016|2026-07-01": {
       "user_id": "ST-25-016",
@@ -724,13 +741,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-067|2026-07-01": {
       "user_id": "ST-26-067",
@@ -741,13 +758,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-066|2026-07-01": {
       "user_id": "ST-26-066",
@@ -758,13 +775,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-068|2026-07-01": {
       "user_id": "ST-26-068",
@@ -775,13 +792,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-062|2026-07-01": {
       "user_id": "ST-26-062",
@@ -792,13 +809,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-CN-008|2026-07-01": {
       "user_id": "ST-CN-008",
@@ -809,13 +826,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-058|2026-07-01": {
       "user_id": "ST-26-058",
@@ -826,13 +843,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-055|2026-07-01": {
       "user_id": "ST-26-055",
@@ -843,13 +860,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-25-007|2026-07-01": {
       "user_id": "ST-25-007",
@@ -860,13 +877,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-065|2026-07-01": {
       "user_id": "ST-26-065",
@@ -877,13 +894,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-070|2026-07-01": {
       "user_id": "ST-26-070",
@@ -894,13 +911,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-25-030|2026-07-01": {
       "user_id": "ST-25-030",
@@ -911,13 +928,30 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
+    },
+    "ST-26-079|2026-07-01": {
+      "user_id": "ST-26-079",
+      "user_name": "MOHAMMED HARISH",
+      "date": "2026-07-01",
+      "first_in_time": "2026-07-01T11:37:47+05:30",
+      "first_in_punch_id": 134878388,
+      "slot_time": "10:00",
+      "slot_label": "Mid-Morning 10AM",
+      "in_status": "recorded",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
+      "last_out_time": null,
+      "last_out_punch_id": null,
+      "out_status": "pending",
+      "out_synced_at": null,
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-084|2026-07-01": {
       "user_id": "ST-26-084",
@@ -928,13 +962,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-26-094|2026-07-01": {
       "user_id": "ST-26-094",
@@ -945,13 +979,13 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     },
     "ST-25-002|2026-07-01": {
       "user_id": "ST-25-002",
@@ -962,251 +996,26 @@
       "slot_time": "10:00",
       "slot_label": "Mid-Morning 10AM",
       "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:28+05:30",
+      "in_synced_at": "2026-07-01T15:34:52+05:30",
       "last_out_time": null,
       "last_out_punch_id": null,
       "out_status": "pending",
       "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:28+05:30",
-      "updated_at": "2026-07-01T15:16:28+05:30"
-    },
-    "ST-25-011|2026-07-01": {
-      "user_id": "ST-25-011",
-      "user_name": "Lavanya Sundaresan",
-      "date": "2026-07-01",
-      "first_in_time": "2026-07-01T13:23:00+05:30",
-      "first_in_punch_id": 135869831,
-      "slot_time": "13:00",
-      "slot_label": "Lunch 1PM",
-      "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:31+05:30",
-      "last_out_time": null,
-      "last_out_punch_id": null,
-      "out_status": "pending",
-      "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:31+05:30",
-      "updated_at": "2026-07-01T15:16:31+05:30"
-    },
-    "ST-25-017|2026-07-01": {
-      "user_id": "ST-25-017",
-      "user_name": "Hareesh Padmanabhan",
-      "date": "2026-07-01",
-      "first_in_time": "2026-07-01T13:37:13+05:30",
-      "first_in_punch_id": 135937290,
-      "slot_time": "13:00",
-      "slot_label": "Lunch 1PM",
-      "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:31+05:30",
-      "last_out_time": null,
-      "last_out_punch_id": null,
-      "out_status": "pending",
-      "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:31+05:30",
-      "updated_at": "2026-07-01T15:16:31+05:30"
-    },
-    "ST-26-081|2026-07-01": {
-      "user_id": "ST-26-081",
-      "user_name": "MEENALOZHNEE",
-      "date": "2026-07-01",
-      "first_in_time": "2026-07-01T14:01:55+05:30",
-      "first_in_punch_id": 136710167,
-      "slot_time": "13:00",
-      "slot_label": "Lunch 1PM",
-      "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:31+05:30",
-      "last_out_time": null,
-      "last_out_punch_id": null,
-      "out_status": "pending",
-      "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:31+05:30",
-      "updated_at": "2026-07-01T15:16:31+05:30"
-    },
-    "ST-26-069|2026-07-01": {
-      "user_id": "ST-26-069",
-      "user_name": "Sahana.G",
-      "date": "2026-07-01",
-      "first_in_time": "2026-07-01T14:05:39+05:30",
-      "first_in_punch_id": 136863766,
-      "slot_time": "13:00",
-      "slot_label": "Lunch 1PM",
-      "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:31+05:30",
-      "last_out_time": null,
-      "last_out_punch_id": null,
-      "out_status": "pending",
-      "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:31+05:30",
-      "updated_at": "2026-07-01T15:16:31+05:30"
-    },
-    "ST-25-013|2026-07-01": {
-      "user_id": "ST-25-013",
-      "user_name": "Arun kumar. J",
-      "date": "2026-07-01",
-      "first_in_time": "2026-07-01T14:07:14+05:30",
-      "first_in_punch_id": 136914979,
-      "slot_time": "13:00",
-      "slot_label": "Lunch 1PM",
-      "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:31+05:30",
-      "last_out_time": null,
-      "last_out_punch_id": null,
-      "out_status": "pending",
-      "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:31+05:30",
-      "updated_at": "2026-07-01T15:16:31+05:30"
-    },
-    "ST-26-073|2026-07-01": {
-      "user_id": "ST-26-073",
-      "user_name": "PRIYANKA R",
-      "date": "2026-07-01",
-      "first_in_time": "2026-07-01T14:10:26+05:30",
-      "first_in_punch_id": 136966211,
-      "slot_time": "13:00",
-      "slot_label": "Lunch 1PM",
-      "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:31+05:30",
-      "last_out_time": null,
-      "last_out_punch_id": null,
-      "out_status": "pending",
-      "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:31+05:30",
-      "updated_at": "2026-07-01T15:16:31+05:30"
-    },
-    "ST-HK-001|2026-07-01": {
-      "user_id": "ST-HK-001",
-      "user_name": "Kumari",
-      "date": "2026-07-01",
-      "first_in_time": "2026-07-01T14:10:43+05:30",
-      "first_in_punch_id": 136966216,
-      "slot_time": "13:00",
-      "slot_label": "Lunch 1PM",
-      "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:31+05:30",
-      "last_out_time": null,
-      "last_out_punch_id": null,
-      "out_status": "pending",
-      "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:31+05:30",
-      "updated_at": "2026-07-01T15:16:31+05:30"
-    },
-    "ST-26-059|2026-07-01": {
-      "user_id": "ST-26-059",
-      "user_name": "Padma Saranya",
-      "date": "2026-07-01",
-      "first_in_time": "2026-07-01T14:15:01+05:30",
-      "first_in_punch_id": 137171183,
-      "slot_time": "13:00",
-      "slot_label": "Lunch 1PM",
-      "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:31+05:30",
-      "last_out_time": null,
-      "last_out_punch_id": null,
-      "out_status": "pending",
-      "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:31+05:30",
-      "updated_at": "2026-07-01T15:16:31+05:30"
-    },
-    "ST-25-001|2026-07-01": {
-      "user_id": "ST-25-001",
-      "user_name": "Gayathri",
-      "date": "2026-07-01",
-      "first_in_time": "2026-07-01T14:23:41+05:30",
-      "first_in_punch_id": 137751359,
-      "slot_time": "13:00",
-      "slot_label": "Lunch 1PM",
-      "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:31+05:30",
-      "last_out_time": null,
-      "last_out_punch_id": null,
-      "out_status": "pending",
-      "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:31+05:30",
-      "updated_at": "2026-07-01T15:16:31+05:30"
-    },
-    "MAV-ST-007|2026-07-01": {
-      "user_id": "MAV-ST-007",
-      "user_name": "Muhammadu Haarish",
-      "date": "2026-07-01",
-      "first_in_time": "2026-07-01T14:23:55+05:30",
-      "first_in_punch_id": 137751360,
-      "slot_time": "13:00",
-      "slot_label": "Lunch 1PM",
-      "in_status": "recorded",
-      "in_synced_at": "2026-07-01T15:16:31+05:30",
-      "last_out_time": null,
-      "last_out_punch_id": null,
-      "out_status": "pending",
-      "out_synced_at": null,
-      "created_at": "2026-07-01T15:16:31+05:30",
-      "updated_at": "2026-07-01T15:16:31+05:30"
+      "created_at": "2026-07-01T15:34:52+05:30",
+      "updated_at": "2026-07-01T15:34:52+05:30"
     }
   },
   "slot_log": [
     {
-      "timestamp": "2026-07-01T15:16:06+05:30",
+      "timestamp": "2026-07-01T15:34:52+05:30",
       "action": "slot_sync",
-      "slot_time": "08:00",
-      "slot_label": "Morning 8AM",
-      "range_from": "2026-07-01T07:40:00",
-      "range_to": "2026-07-01T08:00:00",
-      "punches_found": 5,
-      "users_recorded": 4,
+      "slot_time": "10:00",
+      "slot_label": "Mid-Morning 10AM",
+      "range_from": "2026-07-01T10:01:00",
+      "range_to": "2026-07-01T12:00:00",
+      "punches_found": 106,
+      "users_recorded": 56,
       "already_recorded": 0
-    },
-    {
-      "timestamp": "2026-07-01T15:16:18+05:30",
-      "action": "slot_sync",
-      "slot_time": "08:00",
-      "slot_label": "Morning 8AM",
-      "range_from": "2026-07-01T07:40:00",
-      "range_to": "2026-07-01T08:00:00",
-      "punches_found": 5,
-      "users_recorded": 0,
-      "already_recorded": 4
-    },
-    {
-      "timestamp": "2026-07-01T15:16:26+05:30",
-      "action": "slot_sync",
-      "slot_time": "08:00",
-      "slot_label": "Morning 8AM",
-      "range_from": "2026-07-01T07:40:00",
-      "range_to": "2026-07-01T08:00:00",
-      "punches_found": 5,
-      "users_recorded": 0,
-      "already_recorded": 4
-    },
-    {
-      "timestamp": "2026-07-01T15:16:28+05:30",
-      "action": "slot_sync",
-      "slot_time": "10:00",
-      "slot_label": "Mid-Morning 10AM",
-      "range_from": "2026-07-01T10:01:00",
-      "range_to": "2026-07-01T12:00:00",
-      "punches_found": 106,
-      "users_recorded": 52,
-      "already_recorded": 4
-    },
-    {
-      "timestamp": "2026-07-01T15:16:29+05:30",
-      "action": "slot_sync",
-      "slot_time": "10:00",
-      "slot_label": "Mid-Morning 10AM",
-      "range_from": "2026-07-01T10:01:00",
-      "range_to": "2026-07-01T12:00:00",
-      "punches_found": 106,
-      "users_recorded": 0,
-      "already_recorded": 56
-    },
-    {
-      "timestamp": "2026-07-01T15:16:31+05:30",
-      "action": "slot_sync",
-      "slot_time": "13:00",
-      "slot_label": "Lunch 1PM",
-      "range_from": "2026-07-01T13:01:00",
-      "range_to": "2026-07-01T16:00:00",
-      "punches_found": 144,
-      "users_recorded": 10,
-      "already_recorded": 53
     }
   ]
 }

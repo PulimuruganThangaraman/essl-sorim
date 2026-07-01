@@ -244,13 +244,7 @@ export default function TimeLogin() {
   }
 
   const slotTimes = config.slot_times || ['08:00', '10:00', '13:00', '15:00', '17:00'];
-  const slotLabels = config.slot_labels || {
-    '08:00': 'Morning 8AM',
-    '10:00': 'Mid-Morning 10AM',
-    '13:00': 'Lunch 1PM',
-    '15:00': 'Afternoon 3PM',
-    '17:00': 'Evening 5PM',
-  };
+  const slotLabels = config.slot_labels || {};
   const outTimes = config.out_times || ['22:00', '23:00'];
 
   const [editingSlotTime, setEditingSlotTime] = useState(null);

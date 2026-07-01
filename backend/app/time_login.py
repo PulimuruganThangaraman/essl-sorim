@@ -24,13 +24,7 @@ _log = logging.getLogger("time_login")
 
 # Default slot times (HH:MM) - can be edited via UI
 DEFAULT_SLOT_TIMES = ["08:00", "10:00", "13:00", "15:00", "17:00"]
-DEFAULT_SLOT_LABELS = {
-    "08:00": "Morning 8AM",
-    "10:00": "Mid-Morning 10AM",
-    "13:00": "Lunch 1PM",
-    "15:00": "Afternoon 3PM",
-    "17:00": "Evening 5PM",
-}
+DEFAULT_SLOT_LABELS = {}
 # Default slot ranges in minutes relative to slot_time: (from_offset, to_offset)
 DEFAULT_SLOT_RANGES = {
     "08:00": (-20, 0),
