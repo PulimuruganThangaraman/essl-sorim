@@ -804,6 +804,37 @@ def trigger_time_login_out(check_time: str):
         raise HTTPException(400, f"Invalid check time. Valid: {tl.OUT_TIMES}")
     return tl.process_out_check(check_time)
 
+@app.post("/api/time-login/records/{record_id}/update-time")
+def update_time_login_record_time(record_id: str, payload: dict):
+    field = payload.get("field")
+    value = payload.get("value")
+    if field not in ("first_in_time", "last_out_time"):
+        raise HTTPException(422, "field must be first_in_time or last_out_time")
+    try:
+        rec = tl.update_record_time(record_id, field, value)
+        return {"status": "ok", "record": rec}
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+    except Exception as e:
+        raise HTTPException(500, detail=str(e))
+
+@app.delete("/api/time-login/records/{record_id}")
+def delete_time_login_record(record_id: str):
+    try:
+        tl.delete_record(record_id)
+        return {"status": "ok"}
+    except Exception as e:
+        raise HTTPException(500, detail=str(e))
+
+@app.post("/api/time-login/sync-zoho")
+def sync_time_login_to_zoho(payload: dict):
+    record_ids = payload.get("record_ids")
+    try:
+        result = tl.sync_to_zoho(record_ids=record_ids)
+        return result
+    except Exception as e:
+        raise HTTPException(500, detail=str(e))
+
 # Serve built frontend after API routes so /api/* is never shadowed.
 _static_dir = os.getenv("STATIC_DIR", str(Path(__file__).resolve().parent.parent / "static"))
 if os.path.isdir(_static_dir) and os.listdir(_static_dir):
