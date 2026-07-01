@@ -26,13 +26,8 @@ _log = logging.getLogger("time_login")
 DEFAULT_SLOT_TIMES = ["08:00", "10:00", "13:00", "15:00", "17:00"]
 DEFAULT_SLOT_LABELS = {}
 # Default slot ranges in minutes relative to slot_time: (from_offset, to_offset)
-DEFAULT_SLOT_RANGES = {
-    "08:00": (-20, 0),
-    "10:00": (1, 120),
-    "13:00": (1, 180),
-    "15:00": (1, 120),
-    "17:00": (1, 120),
-}
+# Empty = no hardcoded defaults, user must configure via UI
+DEFAULT_SLOT_RANGES = {}
 DEFAULT_OUT_TIMES = ["22:00", "23:00"]
 
 TL_FILE = Path(os.getenv("TIME_LOGIN_FILE", str(ROOT_DIR / "backend" / "data" / "time_login.json")))
@@ -174,7 +169,7 @@ def process_slot(slot_time: str) -> dict[str, Any]:
     config = data.get("config", {})
     slot_ranges = config.get("slot_ranges", {})
     slot_dt = _parse_slot_time(slot_time)
-    offset_from, offset_to = slot_ranges.get(slot_time, DEFAULT_SLOT_RANGES.get(slot_time, (0, 0)))
+    offset_from, offset_to = slot_ranges.get(slot_time, (0, 0))
     range_from = slot_dt + timedelta(minutes=offset_from)
     range_to = slot_dt + timedelta(minutes=offset_to)
 
