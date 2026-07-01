@@ -3,15 +3,14 @@
     "enabled": true,
     "slots": {
       "08:00": true,
-      "10:00": false,
-      "13:00": false,
-      "15:00": false,
-      "17:00": false
+      "10:00": true,
+      "13:00": true,
+      "15:00": true,
+      "17:00": true
     },
     "out_check_enabled": true,
     "slot_times": [
       "08:00",
-      "09:49",
       "10:00",
       "13:00",
       "15:00",

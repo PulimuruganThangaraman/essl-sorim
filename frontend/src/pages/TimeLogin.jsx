@@ -114,6 +114,37 @@ export default function TimeLogin() {
     }
   }
 
+  async function saveSlotTimeEdit(oldTime) {
+    const newTime = editSlotTimeValue.trim();
+    if (!newTime || newTime === oldTime) { setEditingSlotTime(null); return; }
+    const updated = slotTimes.map(t => t === oldTime ? newTime : t).sort();
+    try {
+      const result = await request('/api/time-login/config', {
+        method: 'POST',
+        body: JSON.stringify({ slot_times: updated }),
+      });
+      setConfig((prev) => ({ ...prev, ...result }));
+      setEditingSlotTime(null);
+      showMsg('Slot time updated', 'success');
+    } catch (err) {
+      showMsg('Failed to update slot time', 'error');
+    }
+  }
+
+  async function deleteSlotTime(slotTime) {
+    const updated = slotTimes.filter(t => t !== slotTime);
+    try {
+      const result = await request('/api/time-login/config', {
+        method: 'POST',
+        body: JSON.stringify({ slot_times: updated }),
+      });
+      setConfig((prev) => ({ ...prev, ...result }));
+      showMsg('Slot time removed', 'success');
+    } catch (err) {
+      showMsg('Failed to remove slot time', 'error');
+    }
+  }
+
   async function triggerOutCheck(checkTime) {
     try {
       const result = await request(`/api/time-login/out-check/${checkTime}`, { method: 'POST' });
@@ -121,6 +152,37 @@ export default function TimeLogin() {
       loadData();
     } catch (err) {
       showMsg('OUT check failed: ' + err.message, 'error');
+    }
+  }
+
+  async function saveOutTimeEdit(oldTime) {
+    const newTime = editOutTimeValue.trim();
+    if (!newTime || newTime === oldTime) { setEditingOutTime(null); return; }
+    const updated = outTimes.map(t => t === oldTime ? newTime : t).sort();
+    try {
+      const result = await request('/api/time-login/config', {
+        method: 'POST',
+        body: JSON.stringify({ out_times: updated }),
+      });
+      setConfig((prev) => ({ ...prev, ...result }));
+      setEditingOutTime(null);
+      showMsg('OUT check time updated', 'success');
+    } catch (err) {
+      showMsg('Failed to update OUT time', 'error');
+    }
+  }
+
+  async function deleteOutTime(checkTime) {
+    const updated = outTimes.filter(t => t !== checkTime);
+    try {
+      const result = await request('/api/time-login/config', {
+        method: 'POST',
+        body: JSON.stringify({ out_times: updated }),
+      });
+      setConfig((prev) => ({ ...prev, ...result }));
+      showMsg('OUT check time removed', 'success');
+    } catch (err) {
+      showMsg('Failed to remove OUT time', 'error');
     }
   }
 
@@ -191,7 +253,10 @@ export default function TimeLogin() {
   };
   const outTimes = config.out_times || ['22:00', '23:00'];
 
-  const [scheduleMode, setScheduleMode] = useState('slots');
+  const [editingSlotTime, setEditingSlotTime] = useState(null);
+  const [editSlotTimeValue, setEditSlotTimeValue] = useState('');
+  const [editingOutTime, setEditingOutTime] = useState(null);
+  const [editOutTimeValue, setEditOutTimeValue] = useState('');
   const [newSlotTime, setNewSlotTime] = useState('');
   const [newOutTime, setNewOutTime] = useState('');
 
@@ -305,7 +370,16 @@ export default function TimeLogin() {
               <div key={slot} className={`tlSlotCard ${enabled ? '' : 'disabled'}`}>
                 <div className="tlSlotHeader">
                   <Icon size={24} />
-                  <h3>{slot}</h3>
+                  {editingSlotTime === slot ? (
+                    <input
+                      type="time"
+                      value={editSlotTimeValue}
+                      onChange={(e) => setEditSlotTimeValue(e.target.value)}
+                      className="timeInput"
+                    />
+                  ) : (
+                    <h3>{slot}</h3>
+                  )}
                 </div>
                 <p className="tlSlotLabel">{slotLabels[slot] || `Slot ${slot}`}</p>
                 <div className="tlSlotBody">
@@ -324,6 +398,17 @@ export default function TimeLogin() {
                     <span className="toggleSlider small" />
                     <small>{enabled ? 'On' : 'Off'}</small>
                   </label>
+                  {editingSlotTime === slot ? (
+                    <>
+                      <button type="button" className="btnSmall" onClick={() => saveSlotTimeEdit(slot)}><Check size={12} /> Save</button>
+                      <button type="button" className="btnSmall btnSecondary" onClick={() => setEditingSlotTime(null)}><X size={12} /></button>
+                    </>
+                  ) : (
+                    <>
+                      <button type="button" className="btnSmall" onClick={() => { setEditingSlotTime(slot); setEditSlotTimeValue(slot); }} title="Edit time"><Edit2 size={12} /></button>
+                      <button type="button" className="btnSmall btnDanger" onClick={() => deleteSlotTime(slot)} title="Remove slot"><Trash2 size={12} /></button>
+                    </>
+                  )}
                   <button
                     type="button"
                     className="btnSmall"
@@ -380,10 +465,30 @@ export default function TimeLogin() {
             <div key={time} className="tlSlotCard out">
               <div className="tlSlotHeader">
                 <Moon size={24} />
-                <h3>{time}</h3>
+                {editingOutTime === time ? (
+                  <input
+                    type="time"
+                    value={editOutTimeValue}
+                    onChange={(e) => setEditOutTimeValue(e.target.value)}
+                    className="timeInput"
+                  />
+                ) : (
+                  <h3>{time}</h3>
+                )}
               </div>
               <p className="tlSlotLabel">Daily OUT check</p>
               <div className="tlSlotActions single">
+                {editingOutTime === time ? (
+                  <>
+                    <button type="button" className="btnSmall" onClick={() => saveOutTimeEdit(time)}><Check size={12} /> Save</button>
+                    <button type="button" className="btnSmall btnSecondary" onClick={() => setEditingOutTime(null)}><X size={12} /></button>
+                  </>
+                ) : (
+                  <>
+                    <button type="button" className="btnSmall" onClick={() => { setEditingOutTime(time); setEditOutTimeValue(time); }} title="Edit time"><Edit2 size={12} /></button>
+                    <button type="button" className="btnSmall btnDanger" onClick={() => deleteOutTime(time)} title="Remove OUT check"><Trash2 size={12} /></button>
+                  </>
+                )}
                 <button
                   type="button"
                   className="btnSmall"

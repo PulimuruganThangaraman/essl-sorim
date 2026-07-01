@@ -2257,7 +2257,8 @@ td em.muted { color: #a0b0a8; font-style: italic; }
   gap: 10px;
   margin-top: 14px;
 }
-.tlAddTime .timeInput {
+.tlAddTime .timeInput,
+.tlSlotHeader .timeInput {
   width: 160px;
   min-height: 38px;
 }
