@@ -1,3 +1,9 @@
+"""
+Zoho People integration module.
+Handles OAuth2 authentication, employee lookup, attendance sync,
+and now: fetching existing Zoho attendance entries for the 'earliest IN / latest OUT' merge logic.
+"""
+
 from __future__ import annotations
 
 import json
@@ -721,6 +727,209 @@ def resolve_employee_id(user_id: str, config: dict[str, Any] | None = None) -> t
         return str(user_id), "biometric_user_id"
     return None, "unmapped"
 
+
+# ============================================================
+# NEW FUNCTIONS: ZOHO ATTENDANCE FETCH + MERGE EARLIEST/LATEST
+# ============================================================
+
+def fetch_zoho_attendance_for_date(
+    emp_id: str,
+    target_date: str,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """
+    Fetch Zoho attendance entries for a specific employee and date.
+    Returns dict with 'checkIn' and 'checkOut' times if found, or empty if not found.
+    """
+    config = config or get_config()
+    _validate_ready(config)
+    access_token = refresh_access_token(config)
+
+    # Zoho v3 attendance API with date filter
+    query = parse.urlencode({
+        "employeeId": emp_id,
+        "attendanceDate": target_date,
+        "limit": 10,
+    })
+    url = f"{str(config['people_url']).rstrip('/')}/people/api/v3/attendance/entries?{query}"
+    req = request.Request(url, method="GET")
+    req.add_header("Authorization", f"Zoho-oauthtoken {access_token}")
+
+    try:
+        with request.urlopen(req, timeout=25) as response:
+            text = response.read().decode("utf-8", errors="replace")
+    except error.HTTPError as exc:
+        # 404 / no records is valid — means no Zoho entry yet
+        if exc.code == 404:
+            return {}
+        body_text = exc.read().decode("utf-8", errors="replace")
+        raise ZohoAPIError(_extract_zoho_error(body_text), status_code=exc.code, body=body_text) from exc
+    except Exception as exc:
+        raise ZohoAPIError(f"Zoho attendance fetch failed: {exc}") from exc
+
+    try:
+        payload = json.loads(text)
+    except Exception:
+        return {}
+
+    # Try to extract checkIn / checkOut from response
+    response = payload.get("response", payload) if isinstance(payload, dict) else payload
+    if isinstance(response, dict):
+        result = response.get("result") or response.get("data") or response.get("records")
+        if isinstance(result, list):
+            for entry in result:
+                if isinstance(entry, dict):
+                    ci = entry.get("checkIn") or entry.get("CheckIn")
+                    co = entry.get("checkOut") or entry.get("CheckOut")
+                    if ci or co:
+                        return {
+                            "checkIn": _clean_text(str(ci)) if ci else None,
+                            "checkOut": _clean_text(str(co)) if co else None,
+                        }
+        elif isinstance(result, dict):
+            ci = result.get("checkIn") or result.get("CheckIn")
+            co = result.get("checkOut") or result.get("CheckOut")
+            if ci or co:
+                return {
+                    "checkIn": _clean_text(str(ci)) if ci else None,
+                    "checkOut": _clean_text(str(co)) if co else None,
+                }
+    return {}
+
+
+def _parse_iso_datetime(value: str) -> datetime | None:
+    """Parse an ISO datetime string safely, returning None on failure."""
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+
+
+def resolve_earliest_latest_entry(
+    biometric_user_id: str,
+    target_date: str,
+    biometric_first_in: str | None,
+    biometric_last_out: str | None,
+    config: dict[str, Any] | None = None,
+) -> tuple[str | None, str | None]:
+    """
+    Merge logic: compares biometric first-in/last-out with existing Zoho entries
+    for the same user on the same day, returning (earliest_checkin, latest_checkout).
+
+    Rules:
+    - Earliest IN = min(zoho_checkIn, biometric_first_in, zoho_checkOut)
+    - Latest OUT = max(zoho_checkOut, biometric_last_out)
+
+    If Zoho has no entry, biometric values are used as-is.
+    """
+    config = config or get_config()
+    emp_id, _ = resolve_employee_id(biometric_user_id, config)
+    if not emp_id:
+        # No Zoho mapping; return biometric values unchanged
+        return biometric_first_in, biometric_last_out
+
+    try:
+        zoho_entry = fetch_zoho_attendance_for_date(emp_id, target_date, config)
+    except Exception:
+        # If Zoho fetch fails (network, auth), fall back to biometric only
+        return biometric_first_in, biometric_last_out
+
+    # Parse all candidate times
+    candidates_in: list[datetime] = []
+    candidates_out: list[datetime] = []
+
+    if biometric_first_in:
+        dt = _parse_iso_datetime(biometric_first_in)
+        if dt:
+            candidates_in.append(dt)
+    if biometric_last_out:
+        dt = _parse_iso_datetime(biometric_last_out)
+        if dt:
+            candidates_out.append(dt)
+
+    if zoho_entry:
+        zoho_ci = zoho_entry.get("checkIn")
+        zoho_co = zoho_entry.get("checkOut")
+        # Zoho checkIn is also a candidate for "earliest IN"
+        if zoho_ci:
+            dt = _parse_iso_datetime(zoho_ci)
+            if dt:
+                candidates_in.append(dt)
+        # Zoho checkOut: both a candidate for latest OUT and if it's actually
+        # the first event of the day (e.g. check in from Zoho web at 7AM)
+        # but we also consider it - the earliest IN could be a checkOut time
+        # only if there's no checkIn. We'll treat checkOut as a candidate for
+        # earliest IN too (some users might have only OUT entry in Zoho).
+        if zoho_co:
+            dt = _parse_iso_datetime(zoho_co)
+            if dt:
+                candidates_out.append(dt)
+                # Also consider for earliest IN (no checkIn but has checkOut)
+                candidates_in.append(dt)
+
+    # Determine earliest IN and latest OUT
+    earliest_in: str | None = None
+    if candidates_in:
+        earliest_in_dt = min(candidates_in)
+        earliest_in = earliest_in_dt.isoformat(timespec="seconds")
+
+    latest_out: str | None = None
+    if candidates_out:
+        latest_out_dt = max(candidates_out)
+        latest_out = latest_out_dt.isoformat(timespec="seconds")
+
+    return earliest_in, latest_out
+
+
+def send_single_punch(
+    user_id: str,
+    user_name: str,
+    first_in: str,
+    last_out: str,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """
+    Send a single user's first IN / last OUT to Zoho as a bulk import entry.
+    Used by the Time Login page "Sync to Zoho" button.
+    """
+    config = config or get_config()
+    _validate_ready(config)
+
+    emp_id, source = resolve_employee_id(user_id, config)
+    if not emp_id:
+        return {"status": "error", "message": f"No Zoho mapping for user {user_id}"}
+
+    item: dict[str, Any] = {"empId": emp_id}
+
+    if first_in:
+        item["checkIn"] = _format_zoho_time(first_in)
+    if last_out:
+        item["checkOut"] = _format_zoho_time(last_out)
+
+    location = _clean_text(config.get("default_location"))
+    building = _clean_text(config.get("default_building"))
+    if location:
+        item["location"] = location
+    if building:
+        item["building"] = building
+
+    try:
+        result = send_bulk_import([item], config)
+        response_text = str(result.get("response_text") or "")
+        if "error" in response_text.lower() or result.get("status_code", 200) >= 400:
+            return {"status": "error", "message": _extract_zoho_error(response_text), "response": response_text[:500]}
+        return {"status": "ok", "message": f"Sent IN/OUT for {user_id} to Zoho", "response": response_text[:200]}
+    except ZohoAPIError as exc:
+        return {"status": "error", "message": str(exc)[:300]}
+    except Exception as exc:
+        return {"status": "error", "message": f"Zoho sync failed: {exc}"[:300]}
+
+
+# ============================================================
+# EXISTING FUNCTIONS (KEPT UNCHANGED)
+# ============================================================
 
 def build_bulk_import_item(punch: dict[str, Any], config: dict[str, Any]) -> tuple[dict[str, Any] | None, str]:
     employee_id, source = resolve_employee_id(str(punch.get("user_id", "")), config)
