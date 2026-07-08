@@ -18,6 +18,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.responses import Response
 from pydantic import BaseModel, Field
 
 @asynccontextmanager
@@ -837,10 +838,20 @@ def sync_time_login_to_zoho(payload: dict):
     except Exception as e:
         raise HTTPException(500, detail=str(e))
 
+# SafeStaticFiles rejects WebSocket so it does not crash
+
+class SafeStaticFiles(StaticFiles):
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            response = Response(status_code=426, content="WebSocket not supported")
+            await response(scope, receive, send)
+            return
+        await super().__call__(scope, receive, send)
+
 # Serve built frontend after API routes so /api/* is never shadowed.
 _static_dir = os.getenv("STATIC_DIR", str(Path(__file__).resolve().parent.parent / "static"))
 if os.path.isdir(_static_dir) and os.listdir(_static_dir):
-    app.mount("/", StaticFiles(directory=_static_dir, html=True), name="frontend")
+    app.mount("/", SafeStaticFiles(directory=_static_dir, html=True), name="frontend")
     logging.getLogger("static").info("Serving frontend from %s", _static_dir)
 
 if __name__ == "__main__":
