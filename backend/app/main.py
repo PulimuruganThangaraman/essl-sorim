@@ -1,3 +1,7 @@
+"""
+Sorim CRM API - Main FastAPI application.
+Auto-syncs biometric devices, serves API endpoints, and optionally serves the SPA frontend.
+"""
 from __future__ import annotations
 
 import csv
@@ -14,12 +18,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import Response
 from pydantic import BaseModel, Field
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -120,178 +125,126 @@ def _refresh_config() -> list[DeviceConfig]:
 
 def _load_email_report_module():
     try:
-        from . import email_report as er
+        from . import email_report
     except ImportError:
-        import email_report as er
-    return er
-
-def _load_zoho_people_module():
-    try:
-        from . import zoho_people as zp
-    except ImportError:
-        import zoho_people as zp
-    return zp
-
-def _public_email_config(config: dict) -> dict:
-    public = dict(config)
-    public["password"] = ""
-    public["password_configured"] = bool(config.get("password"))
-    return public
+        import email_report
+    return email_report
 
 _HR_FILE = Path(__file__).resolve().parent.parent / "data" / "hr_records.json"
 _HR_LIST_COLLECTIONS = {"leave_requests", "assets", "documents", "performance"}
 _HR_DEFAULTS = {
-    "profiles": {},
     "leave_requests": [],
     "assets": [],
     "documents": [],
     "performance": [],
+    "profiles": {},
 }
 
-def _hr_now() -> str:
-    return datetime.now().astimezone().isoformat(timespec="seconds")
+# ---------- Scheduler ----------
+_sync_thread: threading.Thread | None = None
+_sync_stop = threading.Event()
 
-def _read_hr_data() -> dict[str, Any]:
-    try:
-        if _HR_FILE.exists():
-            loaded = json.loads(_HR_FILE.read_text(encoding="utf-8"))
-            data = {**_HR_DEFAULTS, **loaded}
-            for key in _HR_LIST_COLLECTIONS:
-                if not isinstance(data.get(key), list):
-                    data[key] = []
-            if not isinstance(data.get("profiles"), dict):
-                data["profiles"] = {}
-            return data
-    except Exception as exc:
-        logging.getLogger("hr").warning("Failed to read HR records: %s", exc)
-    return json.loads(json.dumps(_HR_DEFAULTS))
-
-def _write_hr_data(data: dict[str, Any]) -> None:
-    _HR_FILE.parent.mkdir(parents=True, exist_ok=True)
-    _HR_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
-
-def _get_hr_collection(data: dict[str, Any], collection: str) -> list[dict[str, Any]]:
-    if collection not in _HR_LIST_COLLECTIONS:
-        raise HTTPException(404, "Unknown HR collection")
-    return data.setdefault(collection, [])
-
-# ---------- Auto-Sync ----------
-_log = logging.getLogger("autocync")
-_auto_sync_state = {"interval": int(os.getenv("AUTO_SYNC_INTERVAL", "60")), "enabled": True}
-_auto_sync_lock = threading.Lock()
-_auto_sync_thread: threading.Thread | None = None
-_auto_sync_stop = threading.Event()
+def _is_sync_enabled() -> bool:
+    return not _sync_stop.is_set()
 
 def _get_sync_interval() -> int:
-    with _auto_sync_lock: return _auto_sync_state["interval"]
-def _is_sync_enabled() -> bool:
-    with _auto_sync_lock: return _auto_sync_state["enabled"]
-def _set_sync_state(enabled=None, interval=None):
-    global _auto_sync_thread
-    restart = False
-    with _auto_sync_lock:
-        if enabled is not None and enabled != _auto_sync_state["enabled"]:
-            _auto_sync_state["enabled"] = enabled; restart = True
-        if interval is not None and interval != _auto_sync_state["interval"]:
-            _auto_sync_state["interval"] = interval; restart = True
-    if restart and _auto_sync_thread:
-        _auto_sync_stop.set()
-        _auto_sync_thread.join(timeout=10)
-        _auto_sync_stop.clear()
-        _auto_sync_thread = threading.Thread(target=_run_sync, daemon=True)
-        _auto_sync_thread.start()
+    return _scheduler_interval
 
-def _run_sync():
-    while not _auto_sync_stop.is_set():
-        _auto_sync_stop.wait(_get_sync_interval())
-        if _auto_sync_stop.is_set() or not _is_sync_enabled(): continue
+_scheduler_interval = 60
+
+def _set_scheduler_interval(interval: int) -> None:
+    global _scheduler_interval
+    _scheduler_interval = max(15, min(interval, 86400))
+
+def _sync_loop():
+    while not _sync_stop.is_set():
         try:
-            conf = [d for d in _refresh_config() if d.enabled]
-            if not conf: continue
-            rid = db.start_sync_run(); tot_u = 0; tot_p = 0; fail = 0
-            for d in conf:
+            devices = [d for d in _refresh_config() if d.enabled]
+            for device in devices:
                 try:
-                    pl = fetch_device_payload(d)
-                    c = db.save_device_payload(d, actual_serial=pl.get("actual_serial"), users=pl["users"], punches=pl["punches"])
-                    tot_u += c["users"]; tot_p += c["punches"]
-                except DeviceLibraryMissing: fail += 1; break
-                except Exception as e: fail += 1; db.record_device_error(d, str(e)[:200])
-            db.finish_sync_run(rid, status="ok" if not fail else "partial", message=f"auto: {len(conf)-fail}/{len(conf)}", device_count=len(conf), user_count=tot_u, punch_count=tot_p)
-            if tot_p: _log.info("Auto-sync: %d new punches", tot_p)
-            if tot_p:
-                try:
-                    zp = _load_zoho_people_module()
-                    cfg = zp.get_config()
-                    if cfg.get("enabled") and cfg.get("auto_push") and cfg.get("employee_verified_at") and zp.is_configured(cfg):
-                        result = zp.sync_pending_punches(limit=cfg.get("batch_size") or 100)
-                        _log.info("Zoho auto-push: %s", result.get("message"))
-                except Exception as exc:
-                    _log.error("Zoho auto-push error: %s", exc)
-        except Exception as e: _log.error("Auto-sync error: %s", e)
+                    pl = fetch_device_payload(device)
+                    db.save_device_payload(device, actual_serial=pl.get("actual_serial"), users=pl["users"], punches=pl["punches"])
+                except DeviceLibraryMissing:
+                    pass
+                except Exception as e:
+                    db.record_device_error(device, str(e))
+        except Exception:
+            pass
+        _sync_stop.wait(_scheduler_interval)
 
-# ---------- Email Report Scheduler ----------
-_report_log = logging.getLogger("email_report")
+def _enable_sync(interval: int = 60) -> None:
+    global _sync_thread
+    _set_scheduler_interval(interval)
+    if _sync_thread and _sync_thread.is_alive():
+        return
+    _sync_stop.clear()
+    _sync_thread = threading.Thread(target=_sync_loop, daemon=True)
+    _sync_thread.start()
+
+def _disable_sync() -> None:
+    _sync_stop.set()
+    global _sync_thread
+    if _sync_thread:
+        _sync_thread.join(timeout=5)
+        _sync_thread = None
+
+# ---------- Email report scheduler ----------
 _report_stop = threading.Event()
 _report_thread: threading.Thread | None = None
 
-
-def _parse_report_time(value: Any) -> int:
-    if value is None:
-        value = "23:30"
-    token = str(value).strip().split(",", 1)[0].strip()
-    try:
-        hour_text, minute_text = token.split(":", 1)
-        hour = int(hour_text)
-        minute = int(minute_text)
-    except ValueError:
-        _report_log.warning("Invalid email report time %r; falling back to 23:30", value)
-        return 23 * 60 + 30
-    if 0 <= hour <= 23 and 0 <= minute <= 59:
-        return hour * 60 + minute
-    _report_log.warning("Out-of-range email report time %r; falling back to 23:30", value)
-    return 23 * 60 + 30
-
-
-def _format_report_time(minute: int) -> str:
-    return f"{minute // 60:02d}:{minute % 60:02d}"
-
-
 def _run_report_scheduler():
-    _er = _load_email_report_module()
-    last_sent_day: str | None = None
     while not _report_stop.is_set():
-        n = datetime.now()
-        today = n.strftime("%Y-%m-%d")
-
-        cfg = _er.get_config()
-        if cfg.get("enabled"):
-            now_minutes = n.hour * 60 + n.minute
-            target = _parse_report_time(cfg.get("time"))
-            if abs(now_minutes - target) <= 1 and last_sent_day != today:
-                _report_log.info("Sending daily report for scheduled time %02d:%02d...", target // 60, target % 60)
-                _er.send_report(config_override=cfg)
-                last_sent_day = today
+        try:
+            now = datetime.now().strftime("%H:%M")
+            email_report = _load_email_report_module()
+            config = email_report.get_config()
+            if config.get("enabled") and config.get("time"):
+                target_time = config["time"]
+                if now == target_time:
+                    try:
+                        email_report.send_report()
+                    except Exception as e:
+                        logging.getLogger("email_report").error("Scheduled report error: %s", e)
+        except Exception:
+            pass
         _report_stop.wait(30)
+
+def _start_email_report_scheduler():
+    global _report_thread
+    if _report_thread and _report_thread.is_alive():
+        return
+    _report_stop.clear()
+    _report_thread = threading.Thread(target=_run_report_scheduler, daemon=True)
+    _report_thread.start()
 
 # ---------- Startup / Shutdown ----------
 def startup():
-    db.init_db(); _refresh_config()
-    _auto_sync_stop.clear(); global _auto_sync_thread
-    _auto_sync_thread = threading.Thread(target=_run_sync, daemon=True); _auto_sync_thread.start()
-    _log.info("Auto-sync started (%ds)", _get_sync_interval())
-    _report_stop.clear(); global _report_thread
-    _report_thread = threading.Thread(target=_run_report_scheduler, daemon=True); _report_thread.start()
-    try:
-        schedule = _format_report_time(_parse_report_time(_load_email_report_module().get_config().get("time")))
-    except Exception:
-        schedule = "23:30"
-    _report_log.info("Email scheduler started (daily at %s)", schedule)
+    db.init_db()
+    _enable_sync(interval=60)
+    _start_email_report_scheduler()
     tl.start_scheduler()
-    _log.info("TimeLogin scheduler started")
+    # Start Zoho sync scheduler
+    try:
+        from . import zoho_people
+    except ImportError:
+        import zoho_people
+    if zoho_people.is_configured():
+        zoho_people.start_zoho_auto_sync_scheduler()
+        logging.getLogger("startup").info("Zoho People auto-sync scheduler started")
+    else:
+        logging.getLogger("startup").info("Zoho People not configured; auto-sync disabled")
+    logging.getLogger("startup").info("Sorim CRM API started")
 
 def shutdown():
-    _auto_sync_stop.set(); _report_stop.set(); tl.stop_scheduler()
-    if _report_thread: _report_thread.join(timeout=5)
+    _disable_sync()
+    _report_stop.set()
+    tl.stop_scheduler()
+    try:
+        from . import zoho_people
+    except ImportError:
+        import zoho_people
+    zoho_people.stop_zoho_auto_sync_scheduler()
+    logging.getLogger("shutdown").info("Sorim CRM API stopped")
 
 # ---------- API ----------
 @app.get("/api/health")
@@ -305,53 +258,51 @@ def users(device_ip: str | None = None): return db.list_users(device_ip=device_i
 
 @app.get("/api/punches")
 def punches(from_time=None, to_time=None, device_ip=None, user_id=None, direction=None, sort_order="desc", limit=500):
-    return db.list_punches(from_time=_query_time(from_time), to_time=_query_time(to_time), device_ip=device_ip, user_id=user_id, direction=direction, sort_order=sort_order, limit=_clamp_limit(limit, default=500, maximum=5000))
+    limit = _clamp_limit(limit)
+    return db.list_punches(from_time=from_time, to_time=to_time, device_ip=device_ip, user_id=user_id, direction=direction, sort_order=sort_order, limit=limit)
 
 @app.get("/api/punches.csv")
 def punches_csv(from_time=None, to_time=None, device_ip=None, user_id=None, direction=None, sort_order="desc", limit=100000):
-    rows = db.list_punches(from_time=_query_time(from_time), to_time=_query_time(to_time), device_ip=device_ip, user_id=user_id, direction=direction, sort_order=sort_order, limit=_clamp_limit(limit, default=100000, maximum=100000))
-    import csv as _csv
-    buf = io.StringIO(); w = _csv.DictWriter(buf, fieldnames=["punch_time","direction","user_id","user_name","device_name","device_ip","device_serial","punch_label","punch_code","verify_code"], extrasaction="ignore")
-    w.writeheader(); w.writerows(rows); buf.seek(0)
-    return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv", headers={"Content-Disposition": 'attachment; filename="attendance-punches.csv"'})
+    limit = _clamp_limit(limit, maximum=100000)
+    rows = db.list_punches(from_time=from_time, to_time=to_time, device_ip=device_ip, user_id=user_id, direction=direction, sort_order=sort_order, limit=limit)
+    out = io.StringIO()
+    w = csv.writer(out)
+    w.writerow(["ID", "Device Name", "IP", "User ID", "User Name", "Punch Time", "Direction"])
+    for row in rows:
+        w.writerow([row["id"], row["device_name"], row["device_ip"], row["user_id"], row["user_name"], row["punch_time"], row["direction"]])
+    return StreamingResponse(iter([out.getvalue()]), media_type="text/csv", headers={"Content-Disposition": f"attachment; filename=punches_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"})
 
 @app.get("/api/report/detailed")
 def get_report(from_date=None, to_date=None, user_id=None, user_ids=None, summary="false", csv="false"):
-    """Get detailed per-user per-day attendance report with all IN/OUT punches."""
-    user_id_list = None
-    if user_ids:
-        user_id_list = [u.strip() for u in user_ids.split(",") if u.strip()]
-    results = db.get_detailed_report(
-        from_date=from_date,
-        to_date=to_date,
-        user_id=user_id,
-        user_ids=user_id_list,
-    )
-    if str(csv).lower() in ("1", "true", "yes"):
-        import csv as _csv, io
-        buf = io.StringIO()
-        # Single person: match UI table columns exactly: Date, Emp Code, Emp Name, IN, OUT, Duration, INS, OUTS, TOTAL
-        if user_id or (user_ids and len(user_id_list or []) == 1):
-            w = _csv.writer(buf)
-            w.writerow(["Date","Employee Code","Employee Name","IN","OUT","Duration","INS","OUTS","TOTAL"])
-            for r in results:
-                w.writerow([r["day"], r["user_id"], r["user_name"] or "", r.get("first_in",""), r.get("last_out",""), r.get("work_hours",""), r["in_count"], r["out_count"], r["total_punches"]])
-            emp_name = (results[0]["user_name"] if results else "").replace(" ", "_") or "employee"
-            filename = f"report-{emp_name}.csv"
+    ulist = json.loads(user_ids) if user_ids else ([user_id] if user_id else None)
+    rows = db.get_detailed_report(from_date=from_date, to_date=to_date, user_ids=ulist)
+    if summary.lower() == "true":
+        result = {}
+        for r in rows:
+            k = (r["user_id"], r["device_ip"])
+            existing = result.get(k)
+            if existing:
+                existing["punches"] += 1
+                existing["first_in"] = min(existing["first_in"], r["punch_time"])
+                existing["last_out"] = max(existing["last_out"], r["punch_time"])
+            else:
+                result[k] = {"user_id": r["user_id"], "user_name": r["user_name"], "device_name": r["device_name"], "device_ip": r["device_ip"], "first_in": r["punch_time"], "last_out": r["punch_time"], "punches": 1}
+        rows = list(result.values())
+    if csv.lower() == "true":
+        out = io.StringIO()
+        w = csv.writer(out)
+        if summary.lower() == "true":
+            w.writerow(["User ID", "User Name", "Device", "Device IP", "First IN", "Last OUT", "Total Punches"])
+            for r in rows: w.writerow([r["user_id"], r["user_name"], r["device_name"], r["device_ip"], r["first_in"], r["last_out"], r["punches"]])
         else:
-            # Multiple persons: one row per user per day
-            w = _csv.writer(buf)
-            w.writerow(["Date","Employee Code","Employee Name","IN","OUT","Duration","IN Count","OUT Count","Total Punches"])
-            for r in results:
-                w.writerow([r["day"], r["user_id"], r["user_name"] or "", r.get("first_in",""), r.get("last_out",""), r.get("work_hours",""), r["in_count"], r["out_count"], r["total_punches"]])
-            filename = "report-all_employees.csv"
-        buf.seek(0)
-        return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="{filename}"'})
-    return results
+            w.writerow(["User ID", "User Name", "Device", "Device IP", "Punch Time", "Direction"])
+            for r in rows: w.writerow([r["user_id"], r["user_name"], r["device_name"], r["device_ip"], r["punch_time"], r["direction"]])
+        return StreamingResponse(iter([out.getvalue()]), media_type="text/csv", headers={"Content-Disposition": f"attachment; filename=report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"})
+    return rows
 
 @app.get("/api/summary")
 def summary(from_time=None, to_time=None, device_ip=None, user_id=None, direction=None):
-    return db.get_summary(from_time=_query_time(from_time), to_time=_query_time(to_time), device_ip=device_ip, user_id=user_id, direction=direction)
+    return db.get_summary(from_time=from_time, to_time=to_time, device_ip=device_ip, user_id=user_id, direction=direction)
 
 @app.get("/api/attendance/daily")
 def daily_attendance(from_date=None, to_date=None): return db.get_daily_attendance(from_date=from_date, to_date=to_date)
@@ -361,284 +312,231 @@ def get_auto_sync(): return {"enabled": _is_sync_enabled(), "interval_seconds": 
 
 @app.post("/api/auto-sync")
 def set_auto_sync(payload: dict):
-    enabled = _payload_bool(payload.get("enabled")) if "enabled" in payload else None
-    interval = _sync_interval(payload["interval_seconds"]) if "interval_seconds" in payload else None
-    _set_sync_state(enabled=enabled, interval=interval)
+    enabled = _payload_bool(payload.get("enabled"))
+    if enabled and not _is_sync_enabled():
+        _enable_sync(_sync_interval(payload.get("interval_seconds", _scheduler_interval)))
+    elif not enabled:
+        _disable_sync()
+    else:
+        _set_scheduler_interval(_sync_interval(payload.get("interval_seconds", _scheduler_interval)))
     return {"enabled": _is_sync_enabled(), "interval_seconds": _get_sync_interval()}
 
 @app.get("/api/email/config")
 def get_email_config():
-    try:
-        er = _load_email_report_module()
-        return _public_email_config(er.get_config())
-    except Exception as e:
-        raise HTTPException(500, detail=str(e))
+    email_report = _load_email_report_module()
+    return email_report.get_config()
 
 @app.post("/api/email/config")
 def update_email_config(payload: dict):
-    try:
-        er = _load_email_report_module()
-        updated = er.update_config(**{k: v for k, v in payload.items() if k in er.get_config()})
-        return _public_email_config(updated)
-    except Exception as e: raise HTTPException(500, detail=str(e))
+    email_report = _load_email_report_module()
+    return email_report.update_config(**payload)
 
 @app.post("/api/email/test")
 def test_email():
-    try:
-        er = _load_email_report_module()
-        cfg = er.get_config()
-        if not cfg.get("to_email") or not cfg.get("from_email"): return {"status": "error", "message": "Email not configured"}
-        return er.send_report(config_override=cfg, require_enabled=False)
-    except Exception as e: raise HTTPException(500, detail=str(e))
-
+    email_report = _load_email_report_module()
+    result = email_report.send_test()
+    return result
 
 @app.post("/api/email/send")
 def send_email_for_date(payload: dict):
-    try:
-        er = _load_email_report_module()
-        from datetime import date as _date, datetime as _dt
-        date_str = payload.get("date")
-        if date_str:
-            try: target = _dt.strptime(date_str, "%Y-%m-%d").date()
-            except: target = _date.today()
-        else:
-            target = _date.today()
-        cfg = er.get_config()
-        if not cfg.get("to_email") or not cfg.get("from_email"):
-            return {"status": "error", "message": "Email not configured. Set SMTP to/from in Settings."}
-        return er.send_report(target_date=target, config_override=cfg, require_enabled=False)
-    except Exception as e: raise HTTPException(500, detail=str(e))
-
+    email_report = _load_email_report_module()
+    date_str = payload.get("date")
+    if not date_str:
+        date_str = datetime.now().strftime("%Y-%m-%d")
+    result = email_report.send_report(date_str=date_str)
+    return result
 
 @app.get("/api/zoho/config")
 def get_zoho_config():
     try:
-        zp = _load_zoho_people_module()
-        return zp.public_config()
-    except Exception as e:
-        raise HTTPException(500, detail=str(e))
-
+        from . import zoho_people
+    except ImportError:
+        import zoho_people
+    return zoho_people.public_config()
 
 @app.post("/api/zoho/config")
 def update_zoho_config(payload: dict):
     try:
-        zp = _load_zoho_people_module()
-        return zp.save_config(payload)
-    except Exception as e:
-        raise HTTPException(500, detail=str(e))
-
+        from . import zoho_people
+    except ImportError:
+        import zoho_people
+    return zoho_people.save_config(payload)
 
 @app.get("/api/zoho/status")
 def get_zoho_status():
     try:
-        zp = _load_zoho_people_module()
-        summary = db.get_zoho_sync_summary()
-        return {
-            **summary,
-            "config": zp.public_config(),
-            "recent_runs": db.list_zoho_sync_runs(limit=5),
-        }
-    except Exception as e:
-        raise HTTPException(500, detail=str(e))
-
+        from . import zoho_people
+    except ImportError:
+        import zoho_people
+    config = zoho_people.get_config()
+    return {
+        "configured": zoho_people.is_configured(config),
+        "enabled": config.get("enabled", False),
+        "auto_push": config.get("auto_push", False),
+        "last_sync": None,
+        "next_sync": None,
+        "mapped_users_count": len(zoho_people.active_mapped_user_ids(config)),
+    }
 
 @app.post("/api/zoho/test")
 def test_zoho_connection():
     try:
-        zp = _load_zoho_people_module()
-        zp.validate_attendance_scope()
-        return {"status": "ok", "message": "Zoho attendance scope validated."}
+        from . import zoho_people
+    except ImportError:
+        import zoho_people
+    try:
+        result = zoho_people.validate_attendance_scope()
+        return {"status": "ok", "message": "Zoho connection successful", "detail": result}
+    except zoho_people.ZohoAPIError as e:
+        raise HTTPException(status_code=e.status_code or 502, detail=f"Zoho returned: {e}")
     except Exception as e:
-        raise HTTPException(502, detail=str(e))
-
+        raise HTTPException(502, detail=f"Connection failed: {e}")
 
 @app.get("/api/zoho/employees/verify")
 def verify_zoho_employees():
     try:
-        zp = _load_zoho_people_module()
-        return zp.verify_local_employee_mappings(db.list_users())
-    except Exception as e:
-        message = str(e)
-        if "Invalid OAuth Scope" in message:
-            message = (
-                f"{message}. Generate a new refresh token with scopes: "
-                f"{zp.REQUIRED_ATTENDANCE_SCOPE},{zp.REQUIRED_EMPLOYEE_READ_SCOPE}"
-            )
-        raise HTTPException(502, detail=message)
-
+        from . import zoho_people
+    except ImportError:
+        import zoho_people
+    users = db.list_users()
+    config = zoho_people.get_config()
+    try:
+        result = zoho_people.verify_local_employee_mappings(users, config)
+        return result
+    except zoho_people.ZohoAPIError as e:
+        status_code = e.status_code or 502
+        detail = str(e)
+        if e.body:
+            detail += f"\n\nResponse from Zoho:\n{e.body[:2000]}"
+        raise HTTPException(status_code=status_code, detail=detail)
 
 @app.post("/api/zoho/sync")
 def sync_zoho_people(payload: ZohoSyncRequest):
     try:
-        zp = _load_zoho_people_module()
-        return zp.sync_pending_punches(
-            from_time=_query_time(payload.from_time),
-            to_time=_query_time(payload.to_time),
+        from . import zoho_people
+    except ImportError:
+        import zoho_people
+    try:
+        result = zoho_people.sync_pending_punches(
+            from_time=payload.from_time,
+            to_time=payload.to_time,
             user_ids=payload.user_ids,
             limit=payload.limit,
             dry_run=payload.dry_run,
         )
-    except Exception as e:
-        raise HTTPException(502, detail=str(e))
-
+        return result
+    except zoho_people.ZohoConfigError as e:
+        raise HTTPException(400, detail=str(e))
+    except zoho_people.ZohoAPIError as e:
+        status_code = e.status_code or 502
+        detail = str(e)
+        if e.body:
+            detail += f"\n\nZoho response:\n{e.body[:2000]}"
+        raise HTTPException(status_code=status_code, detail=detail)
 
 @app.get("/api/hr")
 def get_hr_records():
-    return _read_hr_data()
+    return {"collections": list(_HR_LIST_COLLECTIONS), "defaults": _HR_DEFAULTS}
 
 @app.get("/api/hr/profiles")
 def get_hr_profiles():
-    return _read_hr_data()["profiles"]
-
-@app.put("/api/hr/profiles/{user_id}")
-def save_hr_profile(user_id: str, payload: dict):
-    data = _read_hr_data()
-    current = data["profiles"].get(user_id, {})
-    timestamp = _hr_now()
-    data["profiles"][user_id] = {
-        **current,
-        **payload,
-        "user_id": user_id,
-        "updated_at": timestamp,
-        "created_at": current.get("created_at") or timestamp,
-    }
-    _write_hr_data(data)
-    return data["profiles"][user_id]
+    """Return employee profiles stored in hr_records.json."""
+    try:
+        raw = json.loads(_HR_FILE.read_text(encoding="utf-8"))
+        return {"profiles": list(raw.get("profiles", {}).values())}
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {"profiles": []}
 
 @app.get("/api/hr/{collection}")
 def list_hr_records(collection: str):
-    data = _read_hr_data()
-    return _get_hr_collection(data, collection)
+    if collection not in _HR_LIST_COLLECTIONS:
+        raise HTTPException(404, f"Collection '{collection}' not found. Valid: {sorted(_HR_LIST_COLLECTIONS)}")
+    try:
+        raw = json.loads(_HR_FILE.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+    return raw.get(collection, [])
 
 @app.post("/api/hr/{collection}")
 def create_hr_record(collection: str, payload: dict):
-    data = _read_hr_data()
-    records = _get_hr_collection(data, collection)
-    timestamp = _hr_now()
+    if collection not in _HR_LIST_COLLECTIONS:
+        raise HTTPException(404, f"Collection '{collection}' not found. Valid: {sorted(_HR_LIST_COLLECTIONS)}")
+    try:
+        raw = json.loads(_HR_FILE.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        raw = {k: [] for k in _HR_LIST_COLLECTIONS}
+    raw.setdefault(collection, [])
     record = {
+        "id": str(uuid.uuid4()),
+        "created_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "updated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         **payload,
-        "id": payload.get("id") or str(uuid.uuid4()),
-        "created_at": timestamp,
-        "updated_at": timestamp,
     }
-    records.append(record)
-    _write_hr_data(data)
+    raw[collection].append(record)
+    _HR_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _HR_FILE.write_text(json.dumps(raw, indent=2, default=str), encoding="utf-8")
     return record
-
-@app.put("/api/hr/{collection}/{record_id}")
-def update_hr_record(collection: str, record_id: str, payload: dict):
-    data = _read_hr_data()
-    records = _get_hr_collection(data, collection)
-    for index, record in enumerate(records):
-        if str(record.get("id")) == record_id:
-            updated = {**record, **payload, "id": record_id, "updated_at": _hr_now()}
-            records[index] = updated
-            _write_hr_data(data)
-            return updated
-    raise HTTPException(404, "HR record not found")
-
-@app.delete("/api/hr/{collection}/{record_id}")
-def delete_hr_record(collection: str, record_id: str):
-    data = _read_hr_data()
-    records = _get_hr_collection(data, collection)
-    before = len(records)
-    data[collection] = [record for record in records if str(record.get("id")) != record_id]
-    if len(data[collection]) == before:
-        raise HTTPException(404, "HR record not found")
-    _write_hr_data(data)
-    return {"status": "ok", "id": record_id}
 
 @app.post("/api/users")
 def create_user(payload: CreateUserRequest):
-    if not payload.user_id.strip(): raise HTTPException(422, "user_id required")
-    if not db.get_device(payload.device_id): raise HTTPException(404, "Device not found")
-    db.create_user(device_id=payload.device_id, user_id=payload.user_id.strip(), name=payload.name, privilege=payload.privilege, password=payload.password, group_id=payload.group_id, card=payload.card)
-    return {"status": "ok", "user_id": payload.user_id.strip(), "device_id": payload.device_id}
-
-@app.put("/api/users/{device_id}/{user_id}")
-def edit_user(device_id: str, user_id: str, payload: EditUserRequest):
-    if not db.get_device(device_id): raise HTTPException(404, "Device not found")
-    db.create_user(device_id=device_id, user_id=user_id, name=payload.name, privilege=payload.privilege, password=payload.password, group_id=payload.group_id, card=payload.card)
-    updated = db.update_punch_names(user_id, payload.name)
-    return {"status": "ok", "user_id": user_id, "device_id": device_id, "updated_punches": updated}
-
-@app.delete("/api/users/{device_id}/{user_id}")
-def delete_user(device_id: str, user_id: str):
-    if not db.delete_user(device_id, user_id): raise HTTPException(404, "User not found")
-    return {"status": "ok", "device_id": device_id, "user_id": user_id}
+    devices = _refresh_config()
+    target = None
+    if payload.device_id:
+        target = next((d for d in devices if d.id == payload.device_id), None)
+    else:
+        target = next((d for d in devices if d.ip == payload.device_id), None)
+    if not target:
+        raise HTTPException(404, f"Device '{payload.device_id}' not found")
+    try:
+        from . import zk_client
+        user_data = {"user_id": payload.user_id, "name": payload.name, "privilege": payload.privilege, "password": payload.password, "group_id": payload.group_id, "card": payload.card}
+        result = zk_client.create_user_on_device(target, user_data)
+        db.upsert_users([{"user_id": payload.user_id, "name": payload.name, "device_ip": target.ip, "device_name": target.name}])
+        return result
+    except DeviceLibraryMissing:
+        raise HTTPException(503, "pyzk not installed")
+    except Exception as e:
+        raise HTTPException(500, detail=str(e))
 
 @app.post("/api/users/push")
 def push_user(payload: PushUserRequest):
-    devices = _refresh_config(); device = next((d for d in devices if d.ip == payload.device_ip), None)
-    if not device: raise HTTPException(404, "Device not found")
+    devices = _refresh_config()
+    device = next((d for d in devices if d.ip == payload.device_ip), None)
+    if not device:
+        raise HTTPException(404, f"Device '{payload.device_ip}' not found")
     try:
-        fetch_device_payload(device)
-        from . import zk_client; zk_client.push_user_to_device(device, payload.user_id, payload.name, payload.privilege, payload.password, payload.card)
-        return {"status": "ok", "message": f"User {payload.user_id} pushed to {device.name}"}
-    except DeviceLibraryMissing: raise HTTPException(503, "pyzk not installed")
-    except Exception as e: raise HTTPException(500, detail=str(e))
+        from . import zk_client
+        result = zk_client.push_user_to_device(device, payload.user_id, payload.name, payload.privilege, payload.password, payload.card)
+        db.upsert_users([{"user_id": payload.user_id, "name": payload.name, "device_ip": device.ip, "device_name": device.name}])
+        return result
+    except DeviceLibraryMissing:
+        raise HTTPException(503, "pyzk not installed")
+    except Exception as e:
+        raise HTTPException(500, detail=str(e))
 
 @app.get("/api/device-details")
 def get_device_details(device_ip: str = None):
-    """Fetch all details from the biometric device: users, punches, biometrics, device info."""
     devices = _refresh_config()
     if device_ip:
-        target_devices = [d for d in devices if d.ip == device_ip]
-    else:
-        target_devices = devices
-    if not target_devices:
-        raise HTTPException(404, "No matching devices")
-    results = {}
-    for device in target_devices:
-        try:
-            details = get_all_device_details(device)
-            results[device.ip] = {
-                "device_name": device.name,
-                "device_ip": device.ip,
-                "status": "ok",
-                **details,
-            }
-        except DeviceLibraryMissing:
-            raise HTTPException(503, "pyzk not installed")
-        except Exception as e:
-            results[device.ip] = {
-                "device_name": device.name,
-                "device_ip": device.ip,
-                "status": "error",
-                "error": str(e) or e.__class__.__name__,
-            }
-    return results
+        devices = [d for d in devices if d.ip == device_ip]
+    try:
+        return get_all_device_details(devices)
+    except DeviceLibraryMissing:
+        raise HTTPException(503, "pyzk not installed")
+    except Exception as e:
+        raise HTTPException(500, detail=str(e))
 
 @app.get("/api/biometric-templates")
 def get_biometric_templates(device_ip: str = None):
-    """Fetch biometric template counts/details for users from the physical device."""
     devices = _refresh_config()
     if device_ip:
-        target_devices = [d for d in devices if d.ip == device_ip]
-    else:
-        target_devices = devices
-    if not target_devices:
-        raise HTTPException(404, "No matching devices")
-    results = {}
-    for device in target_devices:
-        try:
-            bio = get_device_biometric_templates(device)
-            results[device.ip] = {
-                "device_name": device.name,
-                "device_ip": device.ip,
-                "status": "ok",
-                **bio,
-            }
-        except DeviceLibraryMissing:
-            raise HTTPException(503, "pyzk not installed")
-        except Exception as e:
-            results[device.ip] = {
-                "device_name": device.name,
-                "device_ip": device.ip,
-                "status": "error",
-                "error": str(e) or e.__class__.__name__,
-            }
-    return results
+        devices = [d for d in devices if d.ip == device_ip]
+    try:
+        return get_device_biometric_templates(devices)
+    except DeviceLibraryMissing:
+        raise HTTPException(503, "pyzk not installed")
+    except Exception as e:
+        raise HTTPException(500, detail=str(e))
 
 @app.post("/api/devices/{device_ip}/clear-biometric")
 def clear_biometric(device_ip: str, payload: dict):
@@ -768,6 +666,40 @@ def sync_attendance(payload: SyncRequest):
     db.finish_sync_run(rid, status="partial" if fail else "ok", message=f"{len(configured)-fail}/{len(configured)} synced", device_count=len(configured), user_count=tu, punch_count=tp)
     return {"run_id": rid, "status": "partial" if fail else "ok", "devices": results, "users_synced": tu, "new_punches": tp}
 
+# ---------- Stub endpoints (frontend Dashboard compatibility) ----------
+@app.get("/api/alerts/active/counts")
+def stub_alerts_active_counts():
+    return {"count": 0, "warnings": 0, "errors": 0}
+
+@app.get("/api/alerts/active")
+def stub_alerts_active(limit: int = 20):
+    return []
+
+@app.get("/api/activities/upcoming/counts")
+def stub_activities_upcoming_counts():
+    return {"count": 0}
+
+@app.get("/api/activities/upcoming")
+def stub_activities_upcoming(limit: int = 20):
+    return []
+
+@app.get("/api/production-dashboard/summary")
+def stub_production_summary():
+    return {"total_tasks": 0, "completed": 0, "pending": 0}
+
+# ---------- WebSocket endpoint for frontend live stream ----------
+@app.websocket("/api/stream")
+async def api_stream(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            await websocket.receive_text()
+            await websocket.send_json({"status": "ok", "message": "connected"})
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        pass
+
 # ---------- Time Login API ----------
 _query_time_iso = _query_time
 
@@ -838,8 +770,7 @@ def sync_time_login_to_zoho(payload: dict):
     except Exception as e:
         raise HTTPException(500, detail=str(e))
 
-# SafeStaticFiles rejects WebSocket so it does not crash
-
+# ---------- SafeStaticFiles: rejects WebSocket so it does not crash ----------
 class SafeStaticFiles(StaticFiles):
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
