@@ -274,7 +274,14 @@ def punches_csv(from_time=None, to_time=None, device_ip=None, user_id=None, dire
 
 @app.get("/api/report/detailed")
 def get_report(from_date=None, to_date=None, user_id=None, user_ids=None, summary="false", csv="false"):
-    ulist = json.loads(user_ids) if user_ids else ([user_id] if user_id else None)
+    ulist = None
+    if user_ids:
+        try:
+            ulist = json.loads(user_ids)
+        except (json.JSONDecodeError, TypeError):
+            ulist = [u.strip() for u in str(user_ids).split(',') if u.strip()]
+    elif user_id:
+        ulist = [user_id]
     rows = db.get_detailed_report(from_date=from_date, to_date=to_date, user_ids=ulist)
     if summary.lower() == "true":
         result = {}
